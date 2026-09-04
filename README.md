@@ -7,7 +7,7 @@
 
 - Node.js 22+
 - pnpm 10+
-- Chrome / Edge（扩展从 W4 开始真正填表）
+- Chrome / Edge（扩展从 M2 开始对任意网申页预填，提交仍手点）
 
 ## 启动
 
@@ -48,7 +48,7 @@ pnpm dev
 1. 打开「设置」
 2. 填写 Base URL 和 API Key（默认 SpaceXAI：`https://api.x.ai/v1`，模型 `grok-4.5`）
 3. 点「拉取模型」，会请求 `{Base URL}/models`
-4. 在简历页打开「AI 助手」：润色要点、生成评价、按 JD 改写、自由提问
+4. 在简历页打开「AI 助手」：按模块润色、STAR、生成评价、按 JD 改写、诊断、自由提问
 
 也可填本地接口，例如 Ollama：`http://127.0.0.1:11434/v1`。环境变量 `XAI_API_KEY` 可作备用密钥（见 `.env.example`）。
 
@@ -70,11 +70,12 @@ SQLite 文件：`apps/server/data/app.db`（不入库）。使用 Node 22 内置
 
 ```
 apps/web          工作台 / 档案 / 简历 / 看板 / 设置
-apps/extension    预填扩展（W1 只检查本机服务）
+apps/extension    预填扩展（M2 对任意网申页填表，目前只检查本机服务）
 apps/server       本机 API，只听 127.0.0.1
 packages/schema   Profile / Resume / Application / AI
-packages/fill     站点探测（W4 补全）
+packages/fill     抽表单骨架并写回输入框（M2，目前仅 ATS 名字备注）
 packages/pdf      一页纸 A4 尺寸与导出文件名
+docs/M2.md        M2 任意网申页 AI 预填
 ```
 
 ## 阶段
@@ -84,8 +85,8 @@ packages/pdf      一页纸 A4 尺寸与导出文件名
 | M0 W1 脚手架 + 数据契约 | 已完成 |
 | M1a W2 档案表单 | 已完成 |
 | M1b W3 一页 PDF | 已完成（8 套完整模板 + 主题/模块/证件照） |
-| AI 助手（自定义 URL / Key / 拉模型） | 已完成 |
-| M2 北森预填 | 未开始 |
+| AI 助手（自定义 URL / Key / 拉模型 / 按模块改写） | 已完成 |
+| M2 任意网申页 AI 预填 | 未开始，见 [docs/M2.md](docs/M2.md) |
 | M3 投递看板闭环 | 未开始 |
 
 ## 明确不做
