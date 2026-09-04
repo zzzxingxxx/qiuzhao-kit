@@ -94,85 +94,72 @@ onMounted(load);
 </script>
 
 <template>
-  <div v-loading="loading" class="page-card settings">
-    <h2>AI 助手</h2>
-    <p class="hint">
-      兼容 OpenAI 的 <code>/v1</code> 接口：保存后点「拉取模型」，会请求
-      <code>{Base URL}/models</code>。默认 {{ DEFAULT_AI_PROVIDER }}，地址
-      <code>{{ DEFAULT_AI_BASE_URL }}</code>，模型 <code>{{ DEFAULT_AI_MODEL }}</code>。
-      也可填本地 Ollama / LM Studio，例如 <code>http://127.0.0.1:11434/v1</code>。
-    </p>
+  <div v-loading="loading" class="page">
+    <header class="page-head">
+      <div>
+        <h1>设置</h1>
+        <p>AI 助手走 OpenAI 兼容接口。密钥只存在本机 SQLite，不会进前端打包。</p>
+      </div>
+    </header>
 
-    <el-form label-width="108px" class="form">
-      <el-form-item label="接口地址">
-        <el-input v-model="baseUrl" placeholder="https://api.x.ai/v1" />
-      </el-form-item>
-      <el-form-item label="API Key">
-        <el-input
-          v-model="apiKey"
-          :type="showKey ? 'text' : 'password'"
-          autocomplete="off"
-          placeholder="留空则保持已保存的密钥"
-        >
-          <template #append>
-            <el-button @click="showKey = !showKey">{{ showKey ? "隐藏" : "显示" }}</el-button>
-          </template>
-        </el-input>
-        <p v-if="settings?.hasKey" class="meta">
-          已保存 {{ settings.keyHint }}
-          <span v-if="settings.usingEnvKey">（来自环境变量 XAI_API_KEY）</span>
-        </p>
-      </el-form-item>
-      <el-form-item label="模型">
-        <el-select
-          v-model="model"
-          filterable
-          allow-create
-          default-first-option
-          placeholder="先拉取模型，或手动填写"
-          style="width: 100%"
-        >
-          <el-option v-for="item in models" :key="item.id" :label="item.id" :value="item.id" />
-        </el-select>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" :loading="saving" @click="save">保存</el-button>
-        <el-button :loading="fetching" @click="pullModels">拉取模型</el-button>
-        <el-button :disabled="!settings?.hasKey" @click="clearKey">清除密钥</el-button>
-      </el-form-item>
-    </el-form>
-
-    <el-alert
-      type="info"
-      :closable="false"
-      title="密钥只存在本机 SQLite（apps/server/data/app.db），不会进 Git 或前端包。"
-    />
+    <section class="surface sheet">
+      <h2>AI 助手</h2>
+      <p class="hint">
+        保存后点「拉取模型」，会请求 <code>{Base URL}/models</code>。默认 {{ DEFAULT_AI_PROVIDER }}：
+        <code>{{ DEFAULT_AI_BASE_URL }}</code> / <code>{{ DEFAULT_AI_MODEL }}</code>。
+        本地可填 <code>http://127.0.0.1:11434/v1</code>。
+      </p>
+      <el-form label-width="108px" class="form">
+        <el-form-item label="接口地址">
+          <el-input v-model="baseUrl" placeholder="https://api.x.ai/v1" />
+        </el-form-item>
+        <el-form-item label="API Key">
+          <el-input
+            v-model="apiKey"
+            :type="showKey ? 'text' : 'password'"
+            autocomplete="off"
+            placeholder="留空则保持已保存的密钥"
+          >
+            <template #append>
+              <el-button @click="showKey = !showKey">{{ showKey ? "隐藏" : "显示" }}</el-button>
+            </template>
+          </el-input>
+          <p v-if="settings?.hasKey" class="meta">
+            已保存 {{ settings.keyHint }}
+            <span v-if="settings.usingEnvKey">（来自环境变量 XAI_API_KEY）</span>
+          </p>
+        </el-form-item>
+        <el-form-item label="模型">
+          <el-select v-model="model" filterable allow-create default-first-option placeholder="先拉取模型，或手动填写" style="width: 100%">
+            <el-option v-for="item in models" :key="item.id" :label="item.id" :value="item.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <button type="button" class="btn btn-primary" :disabled="saving" @click="save">保存</button>
+          <button type="button" class="btn" :disabled="fetching" @click="pullModels" style="margin-left: 8px">拉取模型</button>
+          <button type="button" class="btn btn-ghost" :disabled="!settings?.hasKey" @click="clearKey">清除密钥</button>
+        </el-form-item>
+      </el-form>
+      <p class="hint">密钥文件：apps/server/data/app.db</p>
+    </section>
   </div>
 </template>
 
 <style scoped>
-.settings h2 {
-  margin: 0 0 8px;
+.sheet {
+  padding: 24px 28px 28px;
+  max-width: 720px;
 }
-.hint {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.6;
-  margin: 0 0 20px;
-  max-width: 760px;
+.sheet h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
 }
 .form {
-  max-width: 640px;
+  margin-top: 8px;
 }
 .meta {
   margin: 6px 0 0;
   color: var(--muted);
   font-size: 12px;
-}
-code {
-  font-size: 12px;
-  background: var(--chip);
-  padding: 1px 5px;
-  border-radius: 4px;
 }
 </style>

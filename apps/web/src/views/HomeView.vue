@@ -1,15 +1,21 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { RESUME_TEMPLATES, isProfileComplete, type Profile, type Resume } from "@qiuzhao/schema";
-import { getAiSettings, listApplications, listProfiles, listResumes } from "../api";
+import { getResumeTemplate, isProfileComplete, type Profile, type Resume } from "@qiuzhao/schema";
+import { getAiSettings, listApplications, listProfiles, listResumes, pickPrimaryProfile } from "../api";
 import { aiDrawerOpen, aiReady } from "../ai-ui";
+import ResumePaper from "../components/ResumePaper.vue";
 
 const router = useRouter();
 const loading = ref(true);
 const profile = ref<Profile | null>(null);
 const resume = ref<Resume | null>(null);
 const appCount = ref(0);
+
+const profileState = computed(() => {
+  if (!profile.value) return "未创建";
+  return isProfileComplete(profile.value) ? "已完整" : "待补全";
+});
 
 onMounted(async () => {
   loading.value = true;
@@ -19,12 +25,20 @@ onMounted(async () => {
       listApplications().catch(() => ({ items: [] })),
       getAiSettings().catch(() => null),
     ]);
-    profile.value = profiles.items[0] ?? null;
+    profile.value = pickPrimaryProfile(profiles.items);
     appCount.value = apps.items.length;
     if (settings) aiReady.value = settings.hasKey;
     if (profile.value) {
-      const resumes = await listResumes(profile.value.id);
-      resume.value = resumes.items[0] ?? null;
+      const owned = await listResumes(profile.value.id);
+      resume.value = owned.items[0] ?? null;
+      if (!resume.value) {
+        const all = await listResumes();
+        const found = all.items[0];
+        if (found) {
+          resume.value = found;
+          profile.value = profiles.items.find((item) => item.id === found.profileId) ?? profile.value;
+        }
+      }
     }
   } finally {
     loading.value = false;
@@ -33,154 +47,133 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-loading="loading" class="home">
-    <section class="hero page-card">
+  <div v-loading="loading" class="page home">
+    <header class="page-head">
       <div>
-        <p class="kicker">本机优先</p>
-        <h2>把档案、一页纸和投递收在同一台电脑上</h2>
+        <h1>工作台</h1>
+        <p>本机优先的校招一页纸。档案、简历、投递都在这台电脑上，提交永远由你亲手点。</p>
+      </div>
+    </header>
+
+    <section class="hero surface">
+      <div class="copy">
+        <p class="kicker">{{ resume ? getResumeTemplate(resume.templateId).name : "还没有简历" }}</p>
+        <h2>{{ resume?.basics.name || profile?.name || "从档案开始" }}</h2>
         <p class="sub">
-          八套完整校招模板可直接套用。AI 助手走你自己的 URL 和 Key，默认 SpaceXAI。提交永远由你亲手点。
+          {{
+            resume
+              ? `${resume.targetRole} · 版本 v${resume.version}`
+              : "先把姓名、手机、学校填进档案，再套用一套完整校招模板。"
+          }}
         </p>
-        <div class="hero-actions">
-          <el-button type="primary" @click="router.push('/resume')">打开简历编辑器</el-button>
-          <el-button @click="router.push('/profile')">完善档案</el-button>
-          <el-button @click="aiDrawerOpen = true">打开 AI 助手</el-button>
+        <div class="page-actions">
+          <button type="button" class="btn btn-primary" @click="router.push('/resume')">打开简历工作室</button>
+          <button type="button" class="btn" @click="router.push('/profile')">完善档案</button>
+          <button type="button" class="btn" @click="aiDrawerOpen = true">AI 助手</button>
         </div>
+        <ul class="facts">
+          <li><b>{{ profileState }}</b><span>档案</span></li>
+          <li><b>{{ resume ? `v${resume.version}` : "—" }}</b><span>简历</span></li>
+          <li><b>{{ appCount }}</b><span>投递</span></li>
+          <li><b>{{ aiReady ? "已配置" : "未配置" }}</b><span>AI</span></li>
+        </ul>
       </div>
-    </section>
-
-    <section class="stats">
-      <button class="stat page-card" type="button" @click="router.push('/profile')">
-        <span>档案</span>
-        <strong>{{ profile ? (isProfileComplete(profile) ? "已完整" : "待补全") : "未创建" }}</strong>
-        <em>{{ profile?.name || "去填写姓名 / 手机 / 学校" }}</em>
-      </button>
-      <button class="stat page-card" type="button" @click="router.push('/resume')">
-        <span>简历</span>
-        <strong>{{ resume ? `v${resume.version}` : "未生成" }}</strong>
-        <em>{{ resume ? resume.targetRole : "选一套完整模板开始" }}</em>
-      </button>
-      <button class="stat page-card" type="button" @click="router.push('/board')">
-        <span>看板</span>
-        <strong>{{ appCount }} 条</strong>
-        <em>预填不等于代投</em>
-      </button>
-      <button class="stat page-card" type="button" @click="router.push('/settings')">
-        <span>AI 助手</span>
-        <strong>{{ aiReady ? "已配置" : "未配置" }}</strong>
-        <em>自定义 URL / Key，自动拉模型</em>
-      </button>
-    </section>
-
-    <section class="page-card">
-      <div class="row-head">
-        <strong>完整模板</strong>
-        <el-button text type="primary" @click="router.push('/resume')">去套用</el-button>
-      </div>
-      <div class="tpls">
-        <div v-for="tpl in RESUME_TEMPLATES" :key="tpl.id" class="tpl">
-          <i :style="{ background: tpl.color }" />
-          <div>
-            <strong>{{ tpl.name }}</strong>
-            <span>{{ tpl.category }} · {{ tpl.audience }}</span>
+      <div class="desk">
+        <div v-if="resume" class="mini">
+          <div class="mini-inner">
+            <div class="mini-scale">
+              <ResumePaper :resume="resume" />
+            </div>
           </div>
         </div>
+        <div v-else class="desk-empty">套用模板后，这里会出现一页纸预览</div>
       </div>
     </section>
   </div>
 </template>
 
 <style scoped>
-.home {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.hero {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(280px, 420px);
+  min-height: 420px;
+  overflow: hidden;
 }
-.hero h2 {
-  margin: 6px 0 8px;
-  font-size: 28px;
-  line-height: 1.25;
-  max-width: 720px;
+.copy {
+  padding: 36px 36px 28px;
 }
 .kicker {
-  margin: 0;
+  margin: 0 0 8px;
   color: var(--accent);
   font-size: 12px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.copy h2 {
+  margin: 0 0 10px;
+  font-size: 36px;
+  letter-spacing: -0.04em;
 }
 .sub {
-  margin: 0 0 16px;
+  margin: 0 0 20px;
   color: var(--muted);
-  max-width: 640px;
   line-height: 1.6;
 }
-.hero-actions {
-  display: flex;
+.facts {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
-  flex-wrap: wrap;
+  padding: 0;
+  margin: 28px 0 0;
 }
-.stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-.stat {
-  text-align: left;
-  cursor: pointer;
-  color: inherit;
-  border: 1px solid var(--line);
-}
-.stat span,
-.stat em {
-  display: block;
-  color: var(--muted);
-  font-size: 12px;
-  font-style: normal;
-}
-.stat strong {
-  display: block;
-  font-size: 22px;
-  margin: 8px 0 4px;
-}
-.row-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-.tpls {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-.tpl {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  padding: 10px;
-  border: 1px solid var(--line);
+.facts li {
+  background: var(--chip);
   border-radius: 12px;
-  background: #f8fafc;
+  padding: 10px 12px;
 }
-.tpl i {
-  width: 12px;
-  height: 36px;
-  border-radius: 99px;
+.facts b {
   display: block;
+  font-size: 16px;
 }
-.tpl strong {
-  display: block;
-  font-size: 14px;
-}
-.tpl span {
+.facts span {
   color: var(--muted);
   font-size: 12px;
 }
-@media (max-width: 1100px) {
-  .stats,
-  .tpls {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+.desk {
+  background: var(--desk);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.desk-empty {
+  color: #6b645b;
+  font-size: 13px;
+}
+.mini {
+  width: calc(210mm * 0.38);
+  height: calc(297mm * 0.38);
+  overflow: hidden;
+  border-radius: 4px;
+  box-shadow: 0 18px 40px rgba(40, 28, 18, 0.18);
+}
+.mini-inner,
+.mini-scale {
+  width: 210mm;
+}
+.mini-scale {
+  transform: scale(0.38);
+  transform-origin: top left;
+}
+@media (max-width: 980px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+  .desk {
+    min-height: 320px;
+  }
+  .facts {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 </style>

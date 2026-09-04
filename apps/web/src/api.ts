@@ -41,6 +41,16 @@ export function listProfiles() {
   return request<{ items: Profile[] }>("/profiles");
 }
 
+/** Prefer a named/contact profile so a leftover empty row is not treated as the workspace. */
+export function pickPrimaryProfile(items: Profile[]): Profile | null {
+  if (!items.length) return null;
+  return (
+    items.find((item) => item.name.trim()) ??
+    items.find((item) => item.phone.trim() || item.email.trim()) ??
+    items[0]
+  );
+}
+
 export function listResumes(profileId?: string) {
   const q = profileId ? `?profileId=${encodeURIComponent(profileId)}` : "";
   return request<{ items: Resume[] }>(`/resumes${q}`);

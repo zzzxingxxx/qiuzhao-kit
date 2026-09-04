@@ -35,20 +35,12 @@ const filtered = computed(() => {
         <strong>完整模板 · {{ RESUME_TEMPLATES.length }} 套</strong>
         <span>点选即套用全模块校招示例。已填的姓名、手机、邮箱和教育会保留。</span>
       </div>
-      <div class="cats">
-        <button
-          type="button"
-          class="cat"
-          :class="{ on: category === '全部' }"
-          @click="category = '全部'"
-        >
-          全部
-        </button>
+      <div class="seg">
+        <button type="button" :class="{ on: category === '全部' }" @click="category = '全部'">全部</button>
         <button
           v-for="item in RESUME_TEMPLATE_CATEGORIES"
           :key="item"
           type="button"
-          class="cat"
           :class="{ on: category === item }"
           @click="category = item"
         >
@@ -84,20 +76,12 @@ const filtered = computed(() => {
 </template>
 
 <style scoped>
-.gallery {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 16px 18px 18px;
-  margin-bottom: 16px;
-  box-shadow: var(--shadow);
-}
 .gallery-head {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   align-items: flex-start;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   flex-wrap: wrap;
 }
 .gallery-head span {
@@ -105,25 +89,6 @@ const filtered = computed(() => {
   color: var(--muted);
   font-size: 12px;
   margin-top: 4px;
-}
-.cats {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.cat {
-  border: 1px solid var(--line);
-  background: #fff;
-  border-radius: 999px;
-  padding: 4px 12px;
-  font-size: 12px;
-  cursor: pointer;
-  color: var(--ink);
-}
-.cat.on {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
 }
 .cards {
   display: grid;
@@ -134,7 +99,7 @@ const filtered = computed(() => {
   text-align: left;
   border: 1px solid var(--line);
   background: #fff;
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 8px 8px 12px;
   cursor: pointer;
   color: inherit;
@@ -177,7 +142,7 @@ const filtered = computed(() => {
 .mini-frame {
   height: 248px;
   overflow: hidden;
-  background: #d7dde6;
+  background: var(--desk);
   border-radius: 8px;
   pointer-events: none;
   display: flex;
@@ -195,7 +160,7 @@ const filtered = computed(() => {
   width: 210mm;
 }
 .mini-scale :deep(.paper) {
-  box-shadow: 0 4px 12px rgba(20, 30, 50, 0.16);
+  box-shadow: 0 4px 12px rgba(40, 28, 18, 0.16);
 }
 @media (max-width: 1280px) {
   .cards {

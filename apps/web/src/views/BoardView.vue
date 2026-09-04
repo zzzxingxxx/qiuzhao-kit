@@ -10,10 +10,15 @@ const columns = [
 </script>
 
 <template>
-  <div class="board">
-    <p class="lead">投递闭环排在后面的阶段。现在可以先把简历和档案准备好。预填不等于代投。</p>
+  <div class="page">
+    <header class="page-head">
+      <div>
+        <h1>看板</h1>
+        <p>投递闭环排在后面的阶段。预填不等于代投，提交按钮永远由你亲手点。</p>
+      </div>
+    </header>
     <div class="cols">
-      <section v-for="col in columns" :key="col.key" class="page-card col">
+      <section v-for="col in columns" :key="col.key" class="surface col">
         <header>
           <strong>{{ col.name }}</strong>
           <span>0</span>
@@ -25,10 +30,6 @@ const columns = [
 </template>
 
 <style scoped>
-.lead {
-  margin: 0 0 16px;
-  color: var(--muted);
-}
 .cols {
   display: grid;
   grid-template-columns: repeat(6, minmax(140px, 1fr));
@@ -36,7 +37,8 @@ const columns = [
   overflow-x: auto;
 }
 .col {
-  min-height: 280px;
+  min-height: 320px;
+  padding: 14px;
 }
 .col header {
   display: flex;
@@ -48,10 +50,11 @@ const columns = [
 .empty {
   border: 1px dashed var(--line);
   border-radius: 12px;
-  padding: 28px 8px;
+  padding: 36px 8px;
   text-align: center;
   color: var(--muted);
   font-size: 12px;
+  background: #fff;
 }
 @media (max-width: 1100px) {
   .cols {

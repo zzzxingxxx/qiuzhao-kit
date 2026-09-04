@@ -8,25 +8,25 @@
   body,
   #app {
     background: #fff !important;
+    height: auto !important;
   }
 
-  .sidebar,
-  .topbar,
+  .rail,
   .no-print {
     display: none !important;
   }
 
-  .shell {
+  .shell,
+  .shell.studio,
+  .stage {
     display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    grid-template-columns: 1fr !important;
   }
 
-  .workspace,
-  .content {
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
-  .layout,
+  .studio,
+  .studio-body,
   .preview-col,
   .paper-frame,
   .paper-scale,

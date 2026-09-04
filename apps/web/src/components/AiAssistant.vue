@@ -21,10 +21,10 @@ const messages = ref<Bubble[]>([]);
 const configured = computed(() => aiReady.value);
 
 const actions: { id: AiChatAction; hint: string }[] = [
-  { id: "polish", hint: "润色实习 / 项目要点" },
-  { id: "summary", hint: "生成自我评价" },
-  { id: "match", hint: "按岗位描述改写" },
-  { id: "chat", hint: "自由提问" },
+  { id: "polish", hint: "润色要点" },
+  { id: "summary", hint: "生成评价" },
+  { id: "match", hint: "按 JD 改写" },
+  { id: "chat", hint: "提问" },
 ];
 
 function extractPatch(text: string): AiPatch | null {
@@ -64,8 +64,7 @@ async function run(action: AiChatAction, prompt?: string) {
     return;
   }
   if (action !== "chat") {
-    const label = AI_ACTION_LABELS[action];
-    messages.value.push({ role: "user", content: text || label });
+    messages.value.push({ role: "user", content: text || AI_ACTION_LABELS[action] });
   } else {
     messages.value.push({ role: "user", content: text });
     input.value = "";
@@ -108,47 +107,27 @@ function apply(patch: AiPatch) {
 </script>
 
 <template>
-  <el-drawer
-    v-model="aiDrawerOpen"
-    title="AI 助手"
-    size="400px"
-    class="ai-drawer no-print"
-    :append-to-body="true"
-  >
-    <p class="lead">
-      自定义 OpenAI 兼容地址与密钥，本机服务代发请求。默认 SpaceXAI（xAI）。密钥不会出现在浏览器打包里。
-    </p>
-    <el-alert
-      v-if="!configured"
-      type="warning"
-      :closable="false"
-      title="尚未配置密钥"
-      description="到「设置」填写 Base URL 和 API Key，点「拉取模型」后再用。"
-      class="mb"
-    />
+  <el-drawer v-model="aiDrawerOpen" title="AI 助手" size="400px" class="no-print" append-to-body>
+    <p class="lead">本机服务代发请求。默认 SpaceXAI。密钥不会出现在浏览器打包里。</p>
+    <div v-if="!configured" class="warn">尚未配置密钥。到「设置」填写地址和 Key，再点拉取模型。</div>
     <div class="chips">
-      <el-button
+      <button
         v-for="item in actions"
         :key="item.id"
-        size="small"
+        type="button"
+        class="btn"
         :disabled="loading || (item.id !== 'chat' && !activeResume)"
         @click="run(item.id)"
       >
         {{ item.hint }}
-      </el-button>
+      </button>
     </div>
-    <el-input
-      v-model="jobDesc"
-      class="mb"
-      type="textarea"
-      :rows="3"
-      placeholder="可选：粘贴 JD，用于「按岗位描述改写」"
-    />
+    <el-input v-model="jobDesc" class="mb" type="textarea" :rows="3" placeholder="可选：粘贴 JD，用于按岗位描述改写" />
     <div class="thread">
-      <div v-if="!messages.length" class="empty">问一句，或点上面的快捷改写。助手不会编造你没写过的经历。</div>
+      <div v-if="!messages.length" class="empty">问一句，或点快捷改写。助手不会编造你没写过的经历。</div>
       <div v-for="(msg, i) in messages" :key="i" class="bubble" :class="msg.role">
         <pre>{{ msg.content }}</pre>
-        <el-button v-if="msg.patch" size="small" type="primary" @click="apply(msg.patch)">应用到简历</el-button>
+        <button v-if="msg.patch" type="button" class="btn btn-primary" @click="apply(msg.patch)">应用到简历</button>
       </div>
     </div>
     <div class="composer">
@@ -159,7 +138,7 @@ function apply(patch: AiPatch) {
         placeholder="例如：把第一段实习写得更量化"
         @keydown.enter.ctrl="run('chat')"
       />
-      <el-button type="primary" :loading="loading" :disabled="!input.trim()" @click="run('chat')">发送</el-button>
+      <button type="button" class="btn btn-primary" :disabled="loading || !input.trim()" @click="run('chat')">发送</button>
     </div>
   </el-drawer>
 </template>
@@ -170,6 +149,14 @@ function apply(patch: AiPatch) {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
+}
+.warn {
+  background: var(--accent-soft);
+  color: var(--danger);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-bottom: 12px;
 }
 .mb {
   margin-bottom: 12px;
@@ -201,7 +188,7 @@ function apply(patch: AiPatch) {
   background: var(--chip);
 }
 .bubble.user {
-  background: #ccfbf1;
+  background: var(--accent-soft);
   align-self: flex-end;
 }
 .bubble pre {
