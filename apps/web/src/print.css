@@ -10,8 +10,8 @@
     background: #fff !important;
   }
 
-  .side,
-  .top,
+  .sidebar,
+  .topbar,
   .no-print {
     display: none !important;
   }
@@ -20,8 +20,10 @@
     display: block !important;
   }
 
-  .main {
+  .workspace,
+  .content {
     padding: 0 !important;
+    margin: 0 !important;
   }
 
   .layout,
@@ -45,7 +47,8 @@
     margin: 0 !important;
   }
 
-  .layout-sidebar {
+  .layout-sidebar,
+  .layout-split {
     display: grid !important;
   }
 }

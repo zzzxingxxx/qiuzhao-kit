@@ -1,6 +1,15 @@
+import type {
+  AiChatAction,
+  AiModelItem,
+  AiSettingsPublic,
+  Application,
+  Profile,
+  Resume,
+} from "@qiuzhao/schema";
+
 const BASE = "/api";
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: {
@@ -10,7 +19,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`${res.status} ${text}`);
+    let message = `${res.status} ${text}`;
+    try {
+      const json = JSON.parse(text) as { message?: string; error?: string };
+      message = json.message || json.error || message;
+    } catch {
+      /* keep */
+    }
+    throw new Error(message);
   }
   return res.json() as Promise<T>;
 }
@@ -19,4 +35,54 @@ export type Health = { ok: boolean; service: string; db: string; time: string };
 
 export function getHealth() {
   return request<Health>("/health");
+}
+
+export function listProfiles() {
+  return request<{ items: Profile[] }>("/profiles");
+}
+
+export function listResumes(profileId?: string) {
+  const q = profileId ? `?profileId=${encodeURIComponent(profileId)}` : "";
+  return request<{ items: Resume[] }>(`/resumes${q}`);
+}
+
+export function listApplications() {
+  return request<{ items: Application[] }>("/applications");
+}
+
+export function getAiSettings() {
+  return request<AiSettingsPublic>("/ai/settings");
+}
+
+export function saveAiSettings(body: {
+  baseUrl: string;
+  apiKey?: string;
+  model: string;
+  clearKey?: boolean;
+}) {
+  return request<AiSettingsPublic>("/ai/settings", {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export function fetchAiModels() {
+  return request<{ items: AiModelItem[]; baseUrl: string }>("/ai/models", {
+    method: "POST",
+    body: "{}",
+  });
+}
+
+export function chatAi(body: {
+  messages?: { role: "user" | "assistant" | "system"; content: string }[];
+  prompt?: string;
+  action?: AiChatAction;
+  jobDesc?: string;
+  resume?: unknown;
+  model?: string;
+}) {
+  return request<{ content: string; model: string; provider: string }>("/ai/chat", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }

@@ -139,7 +139,7 @@ onMounted(ensureProfile);
     </div>
     <input ref="fileInput" class="hidden" type="file" accept="application/json" @change="onImportFile" />
 
-    <el-card v-if="profile" shadow="never">
+    <el-card v-if="profile" class="page-card" shadow="never">
       <el-steps :active="step" finish-status="success" simple class="steps">
         <el-step title="身份" @click="step = 0" />
         <el-step title="教育" @click="step = 1" />

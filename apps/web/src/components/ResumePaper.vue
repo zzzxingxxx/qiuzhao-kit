@@ -45,6 +45,12 @@ const showPhoto = computed(
 const skillGroups = computed(() =>
   props.resume.skillGroups.filter((g) => g.items.trim()),
 );
+
+const sectionVariant = computed(() => {
+  if (layout.value === "timeline") return "timeline" as const;
+  if (layout.value === "card") return "card" as const;
+  return "default" as const;
+});
 </script>
 
 <template>
@@ -100,7 +106,33 @@ const skillGroups = computed(() =>
       <ResumeSections :resume="resume" />
     </template>
 
-    <!-- 技术简洁：单栏左对齐 -->
+    <!-- 学术衬线 -->
+    <template v-else-if="layout === 'serif'">
+      <header class="head serif-head">
+        <img v-if="showPhoto" class="photo classic-photo" :src="resume.basics.photo" alt="证件照" />
+        <h1>{{ resume.basics.name || "姓名" }}</h1>
+        <p class="serif-rule" />
+        <p v-if="resume.targetRole" class="role">{{ resume.targetRole }}</p>
+        <p v-if="contacts.length" class="contact">{{ contacts.join("  ·  ") }}</p>
+      </header>
+      <ResumeSections :resume="resume" />
+    </template>
+
+    <!-- 左右分栏 -->
+    <template v-else-if="layout === 'split'">
+      <div class="split-left">
+        <img v-if="showPhoto" class="photo split-photo" :src="resume.basics.photo" alt="证件照" />
+        <h1>{{ resume.basics.name || "姓名" }}</h1>
+        <p v-if="resume.targetRole" class="role">{{ resume.targetRole }}</p>
+        <p v-for="line in contacts" :key="line" class="split-line">{{ line }}</p>
+        <ResumeSections :resume="resume" :hide-keys="['internships', 'projects', 'campus', 'summary']" />
+      </div>
+      <div class="split-right">
+        <ResumeSections :resume="resume" :hide-keys="['education', 'skills', 'awards']" />
+      </div>
+    </template>
+
+    <!-- 技术简洁 / 时间轴 / 卡片 -->
     <template v-else>
       <header class="head">
         <div class="identity">
@@ -112,7 +144,7 @@ const skillGroups = computed(() =>
         </div>
         <img v-if="showPhoto" class="photo" :src="resume.basics.photo" alt="证件照" />
       </header>
-      <ResumeSections :resume="resume" />
+      <ResumeSections :resume="resume" :variant="sectionVariant" />
     </template>
   </article>
 </template>
@@ -192,7 +224,8 @@ h1 {
 .layout-classic .contact {
   color: #333;
 }
-.layout-classic .classic-photo {
+.layout-classic .classic-photo,
+.layout-serif .classic-photo {
   position: absolute;
   top: 0;
   right: 0;
@@ -309,5 +342,99 @@ h1 {
 }
 .layout-sidebar :deep(h2) {
   font-size: 11pt;
+}
+
+.layout-serif {
+  font-family: "Songti SC", "STSong", "SimSun", "Noto Serif SC", "Times New Roman", serif;
+}
+.layout-serif .serif-head {
+  display: block;
+  position: relative;
+  text-align: center;
+  border-bottom: none;
+  min-height: 24mm;
+  margin-bottom: 8px;
+  padding-bottom: 0;
+}
+.layout-serif h1 {
+  letter-spacing: 0.42em;
+  font-size: 22pt;
+  font-weight: 600;
+}
+.serif-rule {
+  width: 42mm;
+  height: 0;
+  margin: 6px auto 4px;
+  border-top: 1px solid #333;
+  border-bottom: 1px solid #333;
+  padding-top: 2px;
+}
+.layout-serif .role {
+  color: #333;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+}
+.layout-serif :deep(h2) {
+  justify-content: center;
+  letter-spacing: 0.28em;
+  border-top: 1px solid var(--resume-color, #3f3f46);
+  border-bottom: 1px solid var(--resume-color, #3f3f46);
+  padding: 2px 0;
+  color: #222;
+}
+.layout-serif :deep(h2::before) {
+  display: none;
+}
+
+.layout-split {
+  display: grid;
+  grid-template-columns: 68mm 1fr;
+  gap: 8mm;
+  padding-top: 12mm;
+}
+.split-left {
+  border-right: 1.5px solid var(--resume-color, #1e3a5f);
+  padding-right: 6mm;
+}
+.split-left h1 {
+  font-size: 16pt;
+  letter-spacing: 0.16em;
+  margin: 6px 0 2px;
+}
+.split-photo {
+  width: 24mm;
+  height: 32mm;
+  display: block;
+  margin-bottom: 6px;
+}
+.split-line {
+  margin: 0 0 3px;
+  font-size: 9pt;
+  color: #444;
+  word-break: break-all;
+}
+.layout-split :deep(h2) {
+  font-size: 10.5pt;
+}
+
+.layout-card .head {
+  border-bottom: none;
+  background: var(--resume-color, #6d28d9);
+  color: #fff;
+  margin: -14mm -14mm 8mm;
+  padding: 11mm 14mm 9mm;
+  align-items: center;
+}
+.layout-card .head h1,
+.layout-card .head .role,
+.layout-card .head .contact {
+  color: #fff;
+}
+.layout-card .head .role {
+  opacity: 0.92;
+}
+
+.layout-timeline .head {
+  border-bottom-width: 3px;
 }
 </style>

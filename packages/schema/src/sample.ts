@@ -129,7 +129,12 @@ export function buildCompleteSampleResume(
       {
         id: nid("skill-2"),
         label: "数据 / 中间件",
-        items: "MySQL / PostgreSQL / Redis / Kafka · Linux / Git / Docker",
+        items: "MySQL / PostgreSQL / Redis / Kafka",
+      },
+      {
+        id: nid("skill-4"),
+        label: "工程 / 工具",
+        items: "Linux / Git / Docker / 单测 / 日志指标",
       },
       {
         id: nid("skill-3"),
@@ -137,10 +142,11 @@ export function buildCompleteSampleResume(
         items: "CET-6 · 可阅读英文文档与论文",
       },
     ],
-    skills: ["Java", "Go", "TypeScript", "Spring Boot", "MySQL", "Redis"],
+    skills: ["Java", "Go", "TypeScript", "Spring Boot", "MySQL", "Redis", "Docker"],
     awards: [
       "2025 全国大学生程序设计竞赛 铜奖",
       "2024 校级优秀学生干部",
+      "2024 校级一等奖学金",
       "2023 校奖学金 二等奖",
     ],
     theme: {

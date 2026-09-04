@@ -45,7 +45,22 @@ CREATE TABLE IF NOT EXISTS applications (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS ai_settings (
+  id TEXT PRIMARY KEY,
+  base_url TEXT NOT NULL,
+  api_key TEXT NOT NULL DEFAULT '',
+  model TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL
+);
 `);
+
+export type AiSettingsRow = {
+  id: string;
+  base_url: string;
+  api_key: string;
+  model: string;
+  updated_at: string;
+};
 
 export type ProfileRow = {
   id: string;

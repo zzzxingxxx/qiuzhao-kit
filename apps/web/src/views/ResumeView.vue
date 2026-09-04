@@ -10,10 +10,13 @@ import {
   normalizeResume,
   pullIdentityFromProfile,
   resumeSchema,
+  type AiPatch,
   type Profile,
   type Resume,
   type ResumeSectionKey,
 } from "@qiuzhao/schema";
+import { request } from "../api";
+import { activeResume, aiDrawerOpen, applyAiPatch } from "../ai-ui";
 import ResumePaper from "../components/ResumePaper.vue";
 import TemplateGallery from "../components/TemplateGallery.vue";
 
@@ -40,15 +43,6 @@ function asResume(data: unknown): Resume {
   return normalizeResume(resumeSchema.parse(data));
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json() as Promise<T>;
-}
-
 function bulletsText(item: { bullets: string[] }): string {
   return item.bullets.join("\n");
 }
@@ -72,6 +66,19 @@ function updateScale() {
   if (!pane || !paper) return;
   const available = pane.clientWidth - 32;
   scale.value = Math.max(0.35, Math.min(1, available / paper.offsetWidth));
+}
+
+function applyPatch(patch: AiPatch) {
+  if (!resume.value) return;
+  if (patch.summary?.trim()) resume.value.basics.summary = patch.summary.trim();
+  for (const item of patch.internships ?? []) {
+    const target = resume.value.internships.find((row) => row.id === item.id);
+    if (target && item.bullets?.length) target.bullets = item.bullets;
+  }
+  for (const item of patch.projects ?? []) {
+    const target = resume.value.projects.find((row) => row.id === item.id);
+    if (target && item.bullets?.length) target.bullets = item.bullets;
+  }
 }
 
 async function load() {
@@ -228,12 +235,20 @@ function compressPhoto(file: File): Promise<string> {
   });
 }
 
-watch(resume, () => nextTick().then(() => {
-  checkOverflow();
-  updateScale();
-}), { deep: true });
+watch(
+  resume,
+  (value) => {
+    activeResume.value = value;
+    nextTick().then(() => {
+      checkOverflow();
+      updateScale();
+    });
+  },
+  { deep: true },
+);
 
 onMounted(async () => {
+  applyAiPatch.value = applyPatch;
   await load();
   observer = new ResizeObserver(() => {
     checkOverflow();
@@ -247,6 +262,8 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   observer?.disconnect();
   window.removeEventListener("resize", updateScale);
+  if (activeResume.value === resume.value) activeResume.value = null;
+  applyAiPatch.value = null;
 });
 </script>
 
@@ -256,12 +273,14 @@ onBeforeUnmount(() => {
     <template v-else-if="resume">
       <div class="toolbar no-print">
         <div>
-          <el-tag>{{ getResumeTemplate(resume.templateId).name }}</el-tag>
+          <el-tag type="success">{{ getResumeTemplate(resume.templateId).name }}</el-tag>
+          <el-tag type="info">{{ getResumeTemplate(resume.templateId).category }}</el-tag>
           <el-tag type="info">版本 v{{ resume.version }}</el-tag>
           <el-tag v-if="overflowing" type="danger">超出一页，请删减或改用紧凑排版</el-tag>
           <el-tag v-else type="success">当前未溢出一页</el-tag>
         </div>
         <div class="actions">
+          <el-button @click="aiDrawerOpen = true">AI 润色</el-button>
           <el-button @click="pullFromProfile">从档案拉取身份/教育</el-button>
           <el-button :loading="saving" @click="save()">保存</el-button>
           <el-button type="primary" :loading="saving" @click="exportPdf">导出 PDF</el-button>
@@ -370,7 +389,7 @@ onBeforeUnmount(() => {
             </el-collapse-item>
 
             <el-collapse-item title="实习经历" name="internships">
-              <p class="hint">只存在简历，不回写档案。要点一行一条，量化结果优先。</p>
+              <p class="hint">只存在简历，不回写档案。要点一行一条，量化结果优先。可用 AI 助手润色。</p>
               <el-form v-for="item in resume.internships" :key="item.id" label-width="88px" class="card">
                 <el-form-item label="公司"><el-input v-model="item.org" /></el-form-item>
                 <el-form-item label="职位"><el-input v-model="item.title" /></el-form-item>
@@ -489,12 +508,13 @@ onBeforeUnmount(() => {
 .editor {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 16px;
   padding: 8px 16px 16px;
+  box-shadow: var(--shadow);
 }
 .card {
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 8px 8px 0;
   margin-bottom: 12px;
 }
@@ -543,8 +563,8 @@ onBeforeUnmount(() => {
 .preview-col {
   position: sticky;
   top: 12px;
-  background: #d9d5ce;
-  border-radius: 10px;
+  background: #d7dde6;
+  border-radius: 16px;
   padding: 12px 16px 18px;
   display: flex;
   flex-direction: column;
@@ -552,7 +572,7 @@ onBeforeUnmount(() => {
 }
 .preview-meta {
   align-self: flex-start;
-  color: #5c564c;
+  color: #475569;
   font-size: 12px;
   margin-bottom: 8px;
 }

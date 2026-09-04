@@ -2,6 +2,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { dbPath } from "./db/index.js";
+import { aiRoutes } from "./routes/ai.js";
 import { applicationRoutes } from "./routes/applications.js";
 import { profileRoutes } from "./routes/profiles.js";
 import { resumeRoutes } from "./routes/resumes.js";
@@ -37,6 +38,7 @@ app.get("/health", (c) =>
 app.route("/profiles", profileRoutes);
 app.route("/resumes", resumeRoutes);
 app.route("/applications", applicationRoutes);
+app.route("/ai", aiRoutes);
 
 app.onError((err, c) => {
   if (err.name === "ZodError") {

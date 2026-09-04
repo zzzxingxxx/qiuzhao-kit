@@ -6,10 +6,14 @@ import {
   type ResumeSectionKey,
 } from "@qiuzhao/schema";
 
-const props = defineProps<{
-  resume: Resume;
-  hideKeys?: ResumeSectionKey[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    resume: Resume;
+    hideKeys?: ResumeSectionKey[];
+    variant?: "default" | "timeline" | "card";
+  }>(),
+  { variant: "default" },
+);
 
 function visible(key: ResumeSectionKey) {
   if (props.hideKeys?.includes(key)) return false;
@@ -44,18 +48,25 @@ const orderedKeys = computed(() =>
 function label(key: ResumeSectionKey) {
   return RESUME_SECTION_LABELS[key];
 }
+
+function rowClass(key: ResumeSectionKey) {
+  if (props.variant === "timeline" && (key === "internships" || key === "projects" || key === "campus")) {
+    return "row timeline-item";
+  }
+  return "row";
+}
 </script>
 
 <template>
   <template v-for="key in orderedKeys" :key="key">
-    <section v-if="key === 'summary'" class="block">
+    <section v-if="key === 'summary'" class="block" :class="variant">
       <h2>{{ label("summary") }}</h2>
       <p class="summary">{{ resume.basics.summary }}</p>
     </section>
 
-    <section v-else-if="key === 'education'" class="block">
+    <section v-else-if="key === 'education'" class="block" :class="variant">
       <h2>{{ label("education") }}</h2>
-      <div v-for="item in resume.education.filter((x) => x.school.trim())" :key="item.id" class="row">
+      <div v-for="item in resume.education.filter((x) => x.school.trim())" :key="item.id" :class="rowClass('education')">
         <div class="row-top">
           <strong>{{ item.school }}</strong>
           <span>{{ item.period }}</span>
@@ -65,9 +76,9 @@ function label(key: ResumeSectionKey) {
       </div>
     </section>
 
-    <section v-else-if="key === 'internships'" class="block">
+    <section v-else-if="key === 'internships'" class="block" :class="variant">
       <h2>{{ label("internships") }}</h2>
-      <div v-for="item in filledExp(resume.internships)" :key="item.id" class="row">
+      <div v-for="item in filledExp(resume.internships)" :key="item.id" :class="rowClass('internships')">
         <div class="row-top">
           <strong>{{ item.org }}{{ item.title ? "  ·  " + item.title : "" }}</strong>
           <span>{{ item.period }}</span>
@@ -79,9 +90,9 @@ function label(key: ResumeSectionKey) {
       </div>
     </section>
 
-    <section v-else-if="key === 'projects'" class="block">
+    <section v-else-if="key === 'projects'" class="block" :class="variant">
       <h2>{{ label("projects") }}</h2>
-      <div v-for="item in filledExp(resume.projects)" :key="item.id" class="row">
+      <div v-for="item in filledExp(resume.projects)" :key="item.id" :class="rowClass('projects')">
         <div class="row-top">
           <strong>{{ item.org }}{{ item.title ? "  ·  " + item.title : "" }}</strong>
           <span>{{ item.period }}</span>
@@ -93,9 +104,9 @@ function label(key: ResumeSectionKey) {
       </div>
     </section>
 
-    <section v-else-if="key === 'campus'" class="block">
+    <section v-else-if="key === 'campus'" class="block" :class="variant">
       <h2>{{ label("campus") }}</h2>
-      <div v-for="item in filledExp(resume.campus)" :key="item.id" class="row">
+      <div v-for="item in filledExp(resume.campus)" :key="item.id" :class="rowClass('campus')">
         <div class="row-top">
           <strong>{{ item.org }}{{ item.title ? "  ·  " + item.title : "" }}</strong>
           <span>{{ item.period }}</span>
@@ -106,7 +117,7 @@ function label(key: ResumeSectionKey) {
       </div>
     </section>
 
-    <section v-else-if="key === 'skills'" class="block">
+    <section v-else-if="key === 'skills'" class="block" :class="variant">
       <h2>{{ label("skills") }}</h2>
       <template v-if="resume.skillGroups.some((g) => g.items.trim())">
         <p v-for="group in resume.skillGroups.filter((g) => g.items.trim())" :key="group.id" class="skill">
@@ -116,7 +127,7 @@ function label(key: ResumeSectionKey) {
       <p v-else>{{ resume.skills.filter((s) => s.trim()).join("  ·  ") }}</p>
     </section>
 
-    <section v-else-if="key === 'awards'" class="block">
+    <section v-else-if="key === 'awards'" class="block" :class="variant">
       <h2>{{ label("awards") }}</h2>
       <ul>
         <li v-for="(award, i) in resume.awards.filter((a) => a.trim())" :key="i">{{ award }}</li>
@@ -170,5 +181,39 @@ ul {
 }
 li {
   margin: 0;
+}
+
+.timeline-item {
+  position: relative;
+  padding-left: 14px;
+  margin-left: 4px;
+  border-left: 2px solid color-mix(in srgb, var(--resume-color, #0f766e) 55%, #fff);
+}
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--resume-color, #0f766e);
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.block.card {
+  border: 1px solid #e8e4ef;
+  border-radius: 7px;
+  padding: 7px 9px 6px;
+  background: #fbfafd;
+}
+.block.card h2 {
+  border-bottom: none;
+  margin-bottom: 4px;
+}
+.block.card h2::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
 }
 </style>

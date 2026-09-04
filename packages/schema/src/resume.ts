@@ -37,9 +37,13 @@ export const DEFAULT_RESUME_SECTIONS: { key: ResumeSectionKey; visible: boolean 
 export const RESUME_THEME_PRESETS = [
   { label: "藏青", color: "#1f4e79" },
   { label: "石墨", color: "#2f3437" },
+  { label: "松绿", color: "#0f766e" },
   { label: "墨绿", color: "#1f6f5b" },
   { label: "绛红", color: "#8c2f39" },
   { label: "靛蓝", color: "#1d4ed8" },
+  { label: "岩灰", color: "#475569" },
+  { label: "葡萄", color: "#6d28d9" },
+  { label: "琥珀", color: "#b45309" },
 ] as const;
 
 export const resumeThemeSchema = z.object({
