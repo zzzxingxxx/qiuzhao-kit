@@ -1,0 +1,24 @@
+{
+  "name": "qiuzhao-kit",
+  "private": true,
+  "version": "0.1.0",
+  "description": "秋招网申助手：简历主档 + 本机档案 + 浏览器预填 + 投递看板",
+  "packageManager": "pnpm@10.13.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo dev --filter=@qiuzhao/server --filter=@qiuzhao/web",
+    "build": "turbo build",
+    "dev:server": "pnpm --filter @qiuzhao/server dev",
+    "dev:web": "pnpm --filter @qiuzhao/web dev",
+    "dev:ext": "pnpm --filter @qiuzhao/extension dev",
+    "typecheck": "turbo typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}
