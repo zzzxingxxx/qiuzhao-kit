@@ -24,12 +24,15 @@ pnpm dev
 | 网页 | http://127.0.0.1:5173 |
 | 扩展 | `apps/extension` 用 `pnpm dev:ext`，再在浏览器加载 `.output/chrome-mv3` |
 
-档案 CRUD：
+档案 / 简历 CRUD：
 
 ```bash
 curl http://127.0.0.1:8787/profiles
 curl -X POST http://127.0.0.1:8787/profiles -H "Content-Type: application/json" -d "{\"name\":\"张三\"}"
+curl http://127.0.0.1:8787/resumes
 ```
+
+网页「简历」页可实时预览一页 A4。点「导出 PDF」会升版本号，然后打开系统打印框，选择「另存为 PDF」。默认文件名形如 `张三-后端-v3`。
 
 SQLite 文件：`apps/server/data/app.db`（不入库）。使用 Node 22 内置 `node:sqlite`，无需编译原生模块。
 
@@ -41,7 +44,7 @@ apps/extension    预填扩展（W1 只检查本机服务）
 apps/server       本机 API，只听 127.0.0.1
 packages/schema   Profile / Resume / Application
 packages/fill     站点探测（W4 补全）
-packages/pdf      一页纸文件名约定（W3 补模板）
+packages/pdf      一页纸 A4 尺寸与导出文件名
 ```
 
 ## 阶段
@@ -50,7 +53,7 @@ packages/pdf      一页纸文件名约定（W3 补模板）
 | --- | --- |
 | M0 W1 脚手架 + 数据契约 | 已完成 |
 | M1a W2 档案表单 | 已完成 |
-| M1b W3 一页 PDF | 未开始 |
+| M1b W3 一页 PDF | 已完成 |
 | M2 北森预填 | 未开始 |
 | M3 投递看板闭环 | 未开始 |
 

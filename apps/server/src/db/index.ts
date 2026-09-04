@@ -57,6 +57,16 @@ export type ProfileRow = {
   updated_at: string;
 };
 
+export type ResumeRow = {
+  id: string;
+  profile_id: string;
+  template_id: string;
+  version: number;
+  payload: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type ApplicationRow = {
   id: string;
   company: string;

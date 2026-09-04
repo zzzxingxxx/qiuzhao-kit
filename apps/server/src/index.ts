@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import { dbPath } from "./db/index.js";
 import { applicationRoutes } from "./routes/applications.js";
 import { profileRoutes } from "./routes/profiles.js";
+import { resumeRoutes } from "./routes/resumes.js";
 
 const PORT = Number(process.env.PORT ?? 8787);
 const HOST = process.env.HOST ?? "127.0.0.1";
@@ -34,7 +35,16 @@ app.get("/health", (c) =>
 );
 
 app.route("/profiles", profileRoutes);
+app.route("/resumes", resumeRoutes);
 app.route("/applications", applicationRoutes);
+
+app.onError((err, c) => {
+  if (err.name === "ZodError") {
+    return c.json({ error: "invalid_payload", issues: (err as { issues?: unknown }).issues }, 400);
+  }
+  console.error(err);
+  return c.json({ error: "internal_error" }, 500);
+});
 
 app.notFound((c) => c.json({ error: "not_found" }, 404));
 

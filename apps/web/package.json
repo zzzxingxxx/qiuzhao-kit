@@ -8,6 +8,7 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@qiuzhao/pdf": "workspace:*",
     "@qiuzhao/schema": "workspace:*",
     "element-plus": "^2.9.8",
     "pinia": "^3.0.2",
