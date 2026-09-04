@@ -50,7 +50,7 @@ onMounted(async () => {
     <main class="main">
       <header class="top">
         <h1>{{ route.meta.title }}</h1>
-        <p>W1 脚手架：三页可切换，档案 API 已通，完整表单从 W2 开始。</p>
+        <p>本机档案可编辑、导入导出。简历 PDF 与网申预填按阶段推进。</p>
       </header>
       <router-view />
     </main>
