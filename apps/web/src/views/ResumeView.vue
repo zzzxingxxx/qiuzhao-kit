@@ -113,6 +113,10 @@ function onPreviewWheel(event: WheelEvent) {
 function applyPatch(patch: AiPatch) {
   if (!resume.value) return;
   if (patch.summary?.trim()) resume.value.basics.summary = patch.summary.trim();
+  for (const item of patch.education ?? []) {
+    const target = resume.value.education.find((row) => row.id === item.id);
+    if (target && item.detail != null) target.detail = item.detail;
+  }
   for (const item of patch.internships ?? []) {
     const target = resume.value.internships.find((row) => row.id === item.id);
     if (target && item.bullets?.length) target.bullets = item.bullets;
@@ -125,6 +129,11 @@ function applyPatch(patch: AiPatch) {
     const target = resume.value.campus.find((row) => row.id === item.id);
     if (target && item.bullets?.length) target.bullets = item.bullets;
   }
+  for (const item of patch.skillGroups ?? []) {
+    const target = resume.value.skillGroups.find((row) => row.id === item.id);
+    if (target && item.items != null) target.items = item.items;
+  }
+  if (patch.awards?.length) resume.value.awards = patch.awards;
 }
 
 async function load() {

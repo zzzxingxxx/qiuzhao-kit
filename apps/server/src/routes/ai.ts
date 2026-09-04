@@ -4,10 +4,15 @@ import {
   DEFAULT_AI_BASE_URL,
   DEFAULT_AI_MODEL,
   DEFAULT_AI_PROVIDER,
+  RESUME_SECTION_KEYS,
   aiChatRequestSchema,
+  aiSectionLabels,
   aiSettingsWriteSchema,
+  resolveAiSections,
+  type AiChatAction,
   type AiModelItem,
   type AiSettingsPublic,
+  type ResumeSectionKey,
 } from "@qiuzhao/schema";
 import { sqlite, type AiSettingsRow } from "../db/index.js";
 import { nowIso } from "../lib/time.js";
@@ -132,50 +137,81 @@ function parseModelList(payload: unknown): AiModelItem[] {
   return items;
 }
 
-function resumeBrief(resume: unknown): string {
+function resumeBrief(resume: unknown, sections?: ResumeSectionKey[]): string {
   if (!resume || typeof resume !== "object") return "";
   try {
-    const copy = JSON.parse(JSON.stringify(resume)) as { basics?: { photo?: string } };
-    if (copy.basics?.photo) copy.basics.photo = "[photo]";
+    const copy = JSON.parse(JSON.stringify(resume)) as Record<string, unknown>;
+    const basics = copy.basics;
+    if (basics && typeof basics === "object") {
+      (basics as { photo?: string }).photo = "[photo]";
+    }
+    if (sections?.length) {
+      const keep = new Set<string>(["id", "profileId", "templateId", "targetRole", "basics", "sections", ...sections]);
+      if (sections.includes("skills")) keep.add("skillGroups");
+      for (const key of Object.keys(copy)) {
+        if (!keep.has(key)) delete copy[key];
+      }
+    }
     return JSON.stringify(copy);
   } catch {
     return "";
   }
 }
 
-const PATCH_JSON =
-  '{"summary":"可选","internships":[{"id":"原id","bullets":["..."]}],"projects":[{"id":"原id","bullets":["..."]}],"campus":[{"id":"原id","bullets":["..."]}]}';
+function patchJsonFor(sections: ResumeSectionKey[]): string {
+  const keys = sections.length ? sections : [...RESUME_SECTION_KEYS];
+  const chunks: string[] = [];
+  if (keys.includes("summary")) chunks.push('"summary":"可选"');
+  if (keys.includes("education")) chunks.push('"education":[{"id":"原id","detail":"..."}]');
+  if (keys.includes("internships")) chunks.push('"internships":[{"id":"原id","bullets":["..."]}]');
+  if (keys.includes("projects")) chunks.push('"projects":[{"id":"原id","bullets":["..."]}]');
+  if (keys.includes("campus")) chunks.push('"campus":[{"id":"原id","bullets":["..."]}]');
+  if (keys.includes("skills")) chunks.push('"skillGroups":[{"id":"原id","items":"..."}]');
+  if (keys.includes("awards")) chunks.push('"awards":["..."]');
+  return `{${chunks.join(",")}}`;
+}
 
-function systemPrompt(action: string, jobDesc?: string): string {
+function scopeRule(sections: ResumeSectionKey[]): string {
+  if (!sections.length) return "";
+  return (
+    `本次只处理这些模块：${aiSectionLabels(sections)}。JSON 里不要出现其他模块。` +
+    "教育背景只改 detail（课程/GPA 表述），不要改学校、专业、学历和时间。" +
+    "专业技能只改 skillGroups 的 items，保留原 id 和 label。" +
+    "荣誉奖项只润色已有条目措辞，不得新增或编造。"
+  );
+}
+
+function systemPrompt(action: AiChatAction, jobDesc?: string, sections?: ResumeSectionKey[]): string {
   const base =
     "你是本机「秋招网申助手」里的简历写作助手。只用简体中文。" +
     "只根据用户提供的事实改写，禁止编造公司、数字、奖项或未出现的技术。" +
     "校招一页纸：动词开头、量化结果、每条大约 20–40 字。";
+  const keys = resolveAiSections(action, sections);
+  const scope = scopeRule(keys);
+  const shape = patchJsonFor(keys);
   const jd = jobDesc?.trim() ? `\n岗位描述：\n${jobDesc.trim()}\n` : "";
+  const focus = keys.length ? `重点看：${aiSectionLabels(keys)}。` : "";
   if (action === "polish") {
-    return base + "润色实习、项目、校园经历要点，保留原 id。只输出 JSON，不要 markdown：" + PATCH_JSON;
+    return base + scope + "润色勾选模块，保留原 id。只输出 JSON，不要 markdown：" + shape;
   }
   if (action === "star") {
     return (
       base +
-      "用 STAR（情境-任务-行动-结果）重写实习和项目要点，数字必须来自原文。只输出 JSON：" +
-      PATCH_JSON
+      scope +
+      "用 STAR（情境-任务-行动-结果）重写勾选的实习/项目/校园要点，数字必须来自原文。只输出 JSON：" +
+      shape
     );
   }
   if (action === "summary") {
     return base + "根据简历生成 2–4 句自我评价。只输出 JSON：{\"summary\":\"...\"}";
   }
   if (action === "match") {
-    return (
-      base +
-      jd +
-      "按 JD 的用词改写要点，不添加没做过的事。只输出 JSON：" +
-      PATCH_JSON
-    );
+    return base + jd + scope + "按 JD 的用词改写勾选模块，不添加没做过的事。只输出 JSON：" + shape;
   }
   if (action === "critique") {
     return (
       base +
+      focus +
       "诊断这份校招简历。用中文纯文本，分三块：" +
       "1) 一句话总评；2) 具体问题（空泛、缺数字、时间线、超一页风险），每条点到模块名；3) 优先改的 3 件事。" +
       "不要输出 JSON，不要编造经历。"
@@ -185,7 +221,8 @@ function systemPrompt(action: string, jobDesc?: string): string {
     return (
       base +
       jd +
-      "从岗位描述提取关键词，对照当前简历。用中文纯文本列出：" +
+      focus +
+      "从岗位描述提取关键词，对照勾选模块。用中文纯文本列出：" +
       "已覆盖的词、简历里没有但 JD 要求的词、不建议硬凑的词。" +
       "没有 JD 时请说明需要粘贴岗位描述。不要输出 JSON。"
     );
@@ -193,11 +230,12 @@ function systemPrompt(action: string, jobDesc?: string): string {
   if (action === "interview") {
     return (
       base +
-      "根据实习和项目出 6–10 个面试追问。每问一行：先写会问什么，再写面试官想验证什么。" +
+      focus +
+      "根据勾选模块出 6–10 个面试追问。每问一行：先写会问什么，再写面试官想验证什么。" +
       "不要替候选人编答案。不要输出 JSON。"
     );
   }
-  return base + "普通对话用中文纯文本。若用户要求改简历，可在末尾附一段 JSON 补丁：" + PATCH_JSON;
+  return base + scope + "普通对话用中文纯文本。若用户要求改简历，可在末尾附一段 JSON 补丁：" + shape;
 }
 
 aiRoutes.get("/settings", (c) => c.json(publicSettings()));
@@ -267,9 +305,10 @@ aiRoutes.post("/chat", async (c) => {
     return c.json({ error: "empty_prompt", message: "请输入问题" }, 400);
   }
 
-  const brief = resumeBrief(body.resume);
+  const targetSections = resolveAiSections(body.action, body.sections);
+  const brief = resumeBrief(body.resume, targetSections.length ? targetSections : undefined);
   const messages = [
-    { role: "system", content: systemPrompt(body.action, body.jobDesc) },
+    { role: "system", content: systemPrompt(body.action, body.jobDesc, body.sections) },
     ...(brief
       ? [{ role: "system" as const, content: `当前简历 JSON：\n${brief.slice(0, 12000)}` }]
       : []),

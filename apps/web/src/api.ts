@@ -5,6 +5,7 @@ import type {
   Application,
   Profile,
   Resume,
+  ResumeSectionKey,
 } from "@qiuzhao/schema";
 
 const BASE = "/api";
@@ -89,6 +90,7 @@ export function chatAi(body: {
   action?: AiChatAction;
   jobDesc?: string;
   resume?: unknown;
+  sections?: ResumeSectionKey[];
   model?: string;
 }) {
   return request<{ content: string; model: string; provider: string }>("/ai/chat", {
