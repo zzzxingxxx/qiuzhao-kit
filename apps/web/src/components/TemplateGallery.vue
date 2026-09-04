@@ -9,7 +9,10 @@ import {
 } from "@qiuzhao/schema";
 import ResumePaper from "./ResumePaper.vue";
 
-defineProps<{ modelValue: string }>();
+withDefaults(
+  defineProps<{ modelValue: string; large?: boolean }>(),
+  { large: false },
+);
 const emit = defineEmits<{
   "update:modelValue": [id: ResumeTemplateId];
 }>();
@@ -32,8 +35,8 @@ const filtered = computed(() => {
   <div class="gallery no-print">
     <div class="gallery-head">
       <div>
-        <strong>完整模板 · {{ RESUME_TEMPLATES.length }} 套</strong>
-        <span>点选即套用全模块校招示例。已填的姓名、手机、邮箱和教育会保留。</span>
+        <strong>完整模板 · {{ RESUME_TEMPLATES.length }} 套范文</strong>
+        <span>后端、算法、管培、审计、产品、运营、前端、数据分析各有独立范文。点选即套用，姓名、手机、邮箱和教育会保留。</span>
       </div>
       <div class="seg">
         <button type="button" :class="{ on: category === '全部' }" @click="category = '全部'">全部</button>
@@ -48,7 +51,7 @@ const filtered = computed(() => {
         </button>
       </div>
     </div>
-    <div class="cards">
+    <div class="cards" :class="{ large }">
       <button
         v-for="item in filtered"
         :key="item.tpl.id"
@@ -94,6 +97,19 @@ const filtered = computed(() => {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+}
+.cards.large {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.cards.large .mini-frame {
+  height: 420px;
+}
+.cards.large .mini-inner {
+  width: calc(210mm * 0.42);
+  height: calc(297mm * 0.42);
+}
+.cards.large .mini-scale {
+  transform: scale(0.42);
 }
 .card {
   text-align: left;

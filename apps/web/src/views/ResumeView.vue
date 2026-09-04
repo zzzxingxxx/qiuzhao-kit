@@ -302,6 +302,7 @@ onBeforeUnmount(() => {
           <b :class="{ bad: overflowing }">{{ overflowing ? "超出一页" : "未溢出" }}</b>
         </div>
         <div class="bar-actions">
+          <button type="button" class="btn" @click="$router.push('/templates')">全部模板</button>
           <button type="button" class="btn" @click="showTemplates = true">换模板</button>
           <button type="button" class="btn" @click="pullFromProfile">拉档案</button>
           <button type="button" class="btn" @click="aiDrawerOpen = true">AI 润色</button>
@@ -505,7 +506,7 @@ onBeforeUnmount(() => {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  background: #eef2f7;
   position: relative;
 }
 .empty {
@@ -564,7 +565,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: #faf6f0;
+  background: #f8fafc;
   overflow: auto;
 }
 .mods button {
@@ -642,7 +643,7 @@ onBeforeUnmount(() => {
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  background: var(--desk);
+  background: #d7dee8;
   display: flex;
   flex-direction: column;
   align-items: center;

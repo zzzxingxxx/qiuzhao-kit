@@ -57,20 +57,20 @@ const sectionVariant = computed(() => {
   <article class="paper" :class="'layout-' + layout" :style="paperStyle">
     <!-- 左侧信息栏：照片 / 联系方式 / 技能 -->
     <template v-if="layout === 'sidebar'">
-      <aside class="rail">
+      <aside class="side-rail">
         <img v-if="showPhoto" class="photo" :src="resume.basics.photo" alt="证件照" />
         <div v-else class="photo-ph">{{ (resume.basics.name || "姓").slice(0, 1) }}</div>
         <h1>{{ resume.basics.name || "姓名" }}</h1>
         <p v-if="resume.targetRole" class="role">{{ resume.targetRole }}</p>
-        <p class="rail-label">联系方式</p>
-        <p v-for="line in contacts" :key="line" class="rail-line">{{ line }}</p>
+        <p class="side-label">联系方式</p>
+        <p v-for="line in contacts" :key="line" class="side-line">{{ line }}</p>
         <template v-if="skillGroups.length || resume.skills.some((s) => s.trim())">
-          <p class="rail-label">专业技能</p>
-          <p v-for="group in skillGroups" :key="group.id" class="rail-skill">
+          <p class="side-label">专业技能</p>
+          <p v-for="group in skillGroups" :key="group.id" class="side-skill">
             <strong v-if="group.label.trim()">{{ group.label }}</strong>
             {{ group.items }}
           </p>
-          <p v-if="!skillGroups.length" class="rail-skill">
+          <p v-if="!skillGroups.length" class="side-skill">
             {{ resume.skills.filter((s) => s.trim()).join(" / ") }}
           </p>
         </template>
@@ -132,7 +132,22 @@ const sectionVariant = computed(() => {
       </div>
     </template>
 
-    <!-- 技术简洁 / 时间轴 / 卡片 -->
+    <!-- 模块卡片：白底姓名 + 卡片模块，不和色带模板共用大色块 -->
+    <template v-else-if="layout === 'card'">
+      <header class="head card-head">
+        <div class="identity">
+          <div class="name-row">
+            <h1>{{ resume.basics.name || "姓名" }}</h1>
+            <span v-if="resume.targetRole" class="role pill">{{ resume.targetRole }}</span>
+          </div>
+          <p v-if="contacts.length" class="contact">{{ contacts.join("  ·  ") }}</p>
+        </div>
+        <img v-if="showPhoto" class="photo" :src="resume.basics.photo" alt="证件照" />
+      </header>
+      <ResumeSections :resume="resume" variant="card" />
+    </template>
+
+    <!-- 技术简洁 / 时间轴 -->
     <template v-else>
       <header class="head">
         <div class="identity">
@@ -277,28 +292,35 @@ h1 {
   border-radius: 1px;
 }
 
+.layout-tech {
+  box-shadow: inset 5px 0 0 var(--resume-color, #1f4e79), 0 10px 28px rgba(20, 30, 50, 0.12);
+}
+.layout-tech .head {
+  border-bottom-width: 2.5px;
+}
+
 .layout-sidebar {
   display: grid;
   grid-template-columns: 64mm 1fr;
 }
-.rail {
+.side-rail {
   background: var(--resume-color, #1f4e79);
   color: #fff;
   padding: 12mm 8mm;
   min-height: 297mm;
 }
-.rail h1 {
+.side-rail h1 {
   color: #fff;
   font-size: 16pt;
   letter-spacing: 0.12em;
   margin-top: 8px;
 }
-.rail .role {
+.side-rail .role {
   color: rgba(255, 255, 255, 0.88);
   margin: 4px 0 10px;
   font-size: 10pt;
 }
-.rail .photo {
+.side-rail .photo {
   width: 28mm;
   height: 36mm;
   display: block;
@@ -317,7 +339,7 @@ h1 {
   font-size: 16pt;
   font-weight: 700;
 }
-.rail-label {
+.side-label {
   margin: 14px 0 6px;
   font-size: 9.5pt;
   letter-spacing: 0.14em;
@@ -325,14 +347,14 @@ h1 {
   padding-bottom: 3px;
   font-weight: 700;
 }
-.rail-line,
-.rail-skill {
+.side-line,
+.side-skill {
   margin: 0 0 4px;
   font-size: 9pt;
   line-height: 1.4;
   word-break: break-all;
 }
-.rail-skill strong {
+.side-skill strong {
   display: block;
   opacity: 0.9;
   margin-bottom: 1px;
@@ -389,12 +411,16 @@ h1 {
 .layout-split {
   display: grid;
   grid-template-columns: 68mm 1fr;
-  gap: 8mm;
-  padding-top: 12mm;
+  gap: 0;
+  padding: 0;
 }
 .split-left {
-  border-right: 1.5px solid var(--resume-color, #1e3a5f);
-  padding-right: 6mm;
+  background: #f3f5f8;
+  padding: 12mm 7mm 12mm 12mm;
+  border-right: 3px solid var(--resume-color, #1e3a5f);
+}
+.split-right {
+  padding: 12mm 12mm 12mm 8mm;
 }
 .split-left h1 {
   font-size: 16pt;
@@ -417,24 +443,35 @@ h1 {
   font-size: 10.5pt;
 }
 
-.layout-card .head {
+.layout-card .card-head {
   border-bottom: none;
-  background: var(--resume-color, #6d28d9);
-  color: #fff;
-  margin: -14mm -14mm 8mm;
-  padding: 11mm 14mm 9mm;
+  background: transparent;
+  margin: 0 0 8px;
+  padding: 0 0 8px;
   align-items: center;
+  border-bottom: 3px solid var(--resume-color, #5b21b6);
 }
-.layout-card .head h1,
-.layout-card .head .role,
-.layout-card .head .contact {
-  color: #fff;
+.layout-card h1 {
+  color: var(--resume-color, #5b21b6);
+  letter-spacing: 0.04em;
 }
-.layout-card .head .role {
-  opacity: 0.92;
+.layout-card .role.pill {
+  background: color-mix(in srgb, var(--resume-color, #5b21b6) 12%, #fff);
+  color: var(--resume-color, #5b21b6);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 9.5pt;
 }
 
 .layout-timeline .head {
-  border-bottom-width: 3px;
+  border-bottom: none;
+  padding-bottom: 6px;
+}
+.layout-timeline h1 {
+  color: var(--resume-color, #0f766e);
+}
+.layout-timeline .contact {
+  border-top: 2px solid var(--resume-color, #0f766e);
+  padding-top: 5px;
 }
 </style>

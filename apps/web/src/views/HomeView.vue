@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { getResumeTemplate, isProfileComplete, type Profile, type Resume } from "@qiuzhao/schema";
+import {
+  createCompleteSampleResume,
+  getResumeTemplate,
+  isProfileComplete,
+  RESUME_TEMPLATES,
+  type Profile,
+  type Resume,
+} from "@qiuzhao/schema";
 import { getAiSettings, listApplications, listProfiles, listResumes, pickPrimaryProfile } from "../api";
 import { aiDrawerOpen, aiReady } from "../ai-ui";
 import ResumePaper from "../components/ResumePaper.vue";
@@ -11,6 +18,10 @@ const loading = ref(true);
 const profile = ref<Profile | null>(null);
 const resume = ref<Resume | null>(null);
 const appCount = ref(0);
+
+const featured = RESUME_TEMPLATES.filter((tpl) =>
+  ["campus-tech", "campus-classic", "campus-banner", "campus-sidebar"].includes(tpl.id),
+).map((tpl) => ({ tpl, sample: createCompleteSampleResume(tpl.id) }));
 
 const profileState = computed(() => {
   if (!profile.value) return "未创建";
@@ -47,34 +58,23 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-loading="loading" class="page home">
-    <header class="page-head">
-      <div>
-        <h1>工作台</h1>
-        <p>本机优先的校招一页纸。档案、简历、投递都在这台电脑上，提交永远由你亲手点。</p>
-      </div>
-    </header>
-
+  <div v-loading="loading" class="page">
     <section class="hero surface">
       <div class="copy">
-        <p class="kicker">{{ resume ? getResumeTemplate(resume.templateId).name : "还没有简历" }}</p>
-        <h2>{{ resume?.basics.name || profile?.name || "从档案开始" }}</h2>
+        <p class="kicker">本机优先 · 一页纸 · 人手提交</p>
+        <h1>做一页能过筛选的校招简历</h1>
         <p class="sub">
-          {{
-            resume
-              ? `${resume.targetRole} · 版本 v${resume.version}`
-              : "先把姓名、手机、学校填进档案，再套用一套完整校招模板。"
-          }}
+          先选模板拿到对应方向的完整范文（后端、算法、管培、审计、产品、运营、前端、数据分析），再把公司名和数字改成你自己的。档案管身份和教育，实习和项目只写在简历里。
         </p>
         <div class="page-actions">
-          <button type="button" class="btn btn-primary" @click="router.push('/resume')">打开简历工作室</button>
-          <button type="button" class="btn" @click="router.push('/profile')">完善档案</button>
-          <button type="button" class="btn" @click="aiDrawerOpen = true">AI 助手</button>
+          <button type="button" class="btn btn-primary" @click="router.push('/templates')">浏览完整模板</button>
+          <button type="button" class="btn" @click="router.push('/resume')">打开简历工作室</button>
+          <button type="button" class="btn" @click="aiDrawerOpen = true">AI 润色</button>
         </div>
         <ul class="facts">
           <li><b>{{ profileState }}</b><span>档案</span></li>
-          <li><b>{{ resume ? `v${resume.version}` : "—" }}</b><span>简历</span></li>
-          <li><b>{{ appCount }}</b><span>投递</span></li>
+          <li><b>{{ resume ? getResumeTemplate(resume.templateId).name : "—" }}</b><span>当前模板</span></li>
+          <li><b>{{ resume ? `v${resume.version}` : "—" }}</b><span>版本</span></li>
           <li><b>{{ aiReady ? "已配置" : "未配置" }}</b><span>AI</span></li>
         </ul>
       </div>
@@ -86,7 +86,34 @@ onMounted(async () => {
             </div>
           </div>
         </div>
-        <div v-else class="desk-empty">套用模板后，这里会出现一页纸预览</div>
+        <div v-else class="desk-empty">选一套模板后，这里出现你的一页纸</div>
+      </div>
+    </section>
+
+    <section class="picks">
+      <header>
+        <h2>四套常用纸样</h2>
+        <button type="button" class="btn btn-ghost" @click="router.push('/templates')">全部 8 套</button>
+      </header>
+      <div class="pick-grid">
+        <button
+          v-for="item in featured"
+          :key="item.tpl.id"
+          type="button"
+          class="surface pick"
+          @click="router.push('/templates')"
+        >
+          <div class="pick-mini">
+            <div class="pick-inner">
+              <div class="pick-scale">
+                <ResumePaper :resume="item.sample" />
+              </div>
+            </div>
+          </div>
+          <strong>{{ item.tpl.name }}</strong>
+          <em>{{ item.tpl.audience }}</em>
+          <p>{{ item.tpl.description }}</p>
+        </button>
       </div>
     </section>
   </div>
@@ -96,27 +123,30 @@ onMounted(async () => {
 .hero {
   display: grid;
   grid-template-columns: minmax(280px, 1fr) minmax(280px, 420px);
-  min-height: 420px;
+  min-height: 440px;
   overflow: hidden;
 }
 .copy {
-  padding: 36px 36px 28px;
+  padding: 40px 36px 32px;
 }
 .kicker {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   color: var(--accent);
   font-size: 12px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
+  font-weight: 600;
 }
-.copy h2 {
-  margin: 0 0 10px;
-  font-size: 36px;
+.copy h1 {
+  margin: 0 0 12px;
+  font-size: 34px;
   letter-spacing: -0.04em;
+  line-height: 1.2;
 }
 .sub {
-  margin: 0 0 20px;
+  margin: 0 0 22px;
   color: var(--muted);
-  line-height: 1.6;
+  line-height: 1.65;
+  font-size: 14px;
 }
 .facts {
   list-style: none;
@@ -128,12 +158,12 @@ onMounted(async () => {
 }
 .facts li {
   background: var(--chip);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 10px 12px;
 }
 .facts b {
   display: block;
-  font-size: 16px;
+  font-size: 14px;
 }
 .facts span {
   color: var(--muted);
@@ -147,7 +177,7 @@ onMounted(async () => {
   padding: 24px;
 }
 .desk-empty {
-  color: #6b645b;
+  color: var(--muted);
   font-size: 13px;
 }
 .mini {
@@ -155,7 +185,8 @@ onMounted(async () => {
   height: calc(297mm * 0.38);
   overflow: hidden;
   border-radius: 4px;
-  box-shadow: 0 18px 40px rgba(40, 28, 18, 0.18);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+  background: #fff;
 }
 .mini-inner,
 .mini-scale {
@@ -165,15 +196,80 @@ onMounted(async () => {
   transform: scale(0.38);
   transform-origin: top left;
 }
+.picks {
+  margin-top: 28px;
+}
+.picks header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.picks h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.pick-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.pick {
+  text-align: left;
+  padding: 10px 10px 14px;
+  cursor: pointer;
+  color: inherit;
+  border: 1px solid var(--line);
+}
+.pick:hover {
+  border-color: var(--accent);
+}
+.pick-mini {
+  height: 220px;
+  overflow: hidden;
+  background: var(--desk);
+  border-radius: 8px;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+  margin-bottom: 10px;
+}
+.pick-inner {
+  width: calc(210mm * 0.28);
+  height: calc(297mm * 0.28);
+  overflow: hidden;
+}
+.pick-scale {
+  transform: scale(0.28);
+  transform-origin: top left;
+  width: 210mm;
+}
+.pick strong {
+  display: block;
+  font-size: 15px;
+  padding: 0 6px;
+}
+.pick em {
+  display: block;
+  font-style: normal;
+  color: var(--accent);
+  font-size: 12px;
+  margin: 4px 6px 8px;
+}
+.pick p {
+  margin: 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
 @media (max-width: 980px) {
   .hero {
     grid-template-columns: 1fr;
   }
-  .desk {
-    min-height: 320px;
-  }
-  .facts {
-    grid-template-columns: repeat(2, 1fr);
+  .facts,
+  .pick-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
 </style>

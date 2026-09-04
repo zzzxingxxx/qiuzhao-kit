@@ -200,6 +200,18 @@ li {
   background: var(--resume-color, #0f766e);
   box-shadow: 0 0 0 2px #fff;
 }
+.timeline-item .row-top {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+.timeline-item .row-top span {
+  order: -1;
+  color: var(--resume-color, #0f766e);
+  font-size: 9pt;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
 
 .block.card {
   border: 1px solid #e8e4ef;

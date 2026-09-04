@@ -229,7 +229,7 @@ onMounted(ensureProfile);
   font-size: 12px;
   padding: 6px 10px;
   border-radius: 999px;
-  background: #fde8e1;
+  background: #fee2e2;
   color: var(--danger);
 }
 .badge.ok {
