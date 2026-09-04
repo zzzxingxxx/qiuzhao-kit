@@ -1,10 +1,67 @@
 import { z } from "zod";
 import type { Profile } from "./profile";
 
+export const RESUME_SECTION_KEYS = [
+  "education",
+  "internships",
+  "projects",
+  "skills",
+  "campus",
+  "awards",
+  "summary",
+] as const;
+
+export type ResumeSectionKey = (typeof RESUME_SECTION_KEYS)[number];
+
+export const RESUME_SECTION_LABELS: Record<ResumeSectionKey, string> = {
+  education: "教育背景",
+  internships: "实习经历",
+  projects: "项目经历",
+  skills: "专业技能",
+  campus: "校园经历",
+  awards: "荣誉奖项",
+  summary: "自我评价",
+};
+
+export const DEFAULT_RESUME_SECTIONS: { key: ResumeSectionKey; visible: boolean }[] = [
+  { key: "education", visible: true },
+  { key: "internships", visible: true },
+  { key: "projects", visible: true },
+  { key: "skills", visible: true },
+  { key: "campus", visible: true },
+  { key: "awards", visible: true },
+  { key: "summary", visible: true },
+];
+
+export const RESUME_THEME_PRESETS = [
+  { label: "藏青", color: "#1f4e79" },
+  { label: "石墨", color: "#2f3437" },
+  { label: "墨绿", color: "#1f6f5b" },
+  { label: "绛红", color: "#8c2f39" },
+  { label: "靛蓝", color: "#1d4ed8" },
+] as const;
+
+export const resumeThemeSchema = z.object({
+  color: z.string().default("#1f4e79"),
+  density: z.enum(["compact", "normal", "relaxed"]).default("normal"),
+  fontSizePt: z.number().min(9).max(13).default(10.5),
+  showPhoto: z.boolean().default(false),
+});
+
+export const resumeSectionSchema = z.object({
+  key: z.enum(RESUME_SECTION_KEYS),
+  visible: z.boolean().default(true),
+});
+
 export const resumeBasicsSchema = z.object({
   name: z.string().default(""),
   phone: z.string().default(""),
   email: z.string().default(""),
+  wechat: z.string().default(""),
+  github: z.string().default(""),
+  website: z.string().default(""),
+  location: z.string().default(""),
+  photo: z.string().default(""),
   summary: z.string().default(""),
 });
 
@@ -22,7 +79,14 @@ export const resumeExperienceSchema = z.object({
   org: z.string().default(""),
   title: z.string().default(""),
   period: z.string().default(""),
+  tech: z.string().default(""),
   bullets: z.array(z.string()).default([]),
+});
+
+export const resumeSkillGroupSchema = z.object({
+  id: z.string(),
+  label: z.string().default(""),
+  items: z.string().default(""),
 });
 
 export const resumeSchema = z.object({
@@ -35,19 +99,56 @@ export const resumeSchema = z.object({
   education: z.array(resumeEducationSchema).default([]),
   internships: z.array(resumeExperienceSchema).default([]),
   projects: z.array(resumeExperienceSchema).default([]),
+  campus: z.array(resumeExperienceSchema).default([]),
   skills: z.array(z.string()).default([]),
+  skillGroups: z.array(resumeSkillGroupSchema).default([]),
   awards: z.array(z.string()).default([]),
+  theme: resumeThemeSchema.default({}),
+  sections: z.array(resumeSectionSchema).default(() =>
+    DEFAULT_RESUME_SECTIONS.map((item) => ({ ...item })),
+  ),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
 
 export type Resume = z.infer<typeof resumeSchema>;
+export type ResumeTheme = z.infer<typeof resumeThemeSchema>;
+export type ResumeSkillGroup = z.infer<typeof resumeSkillGroupSchema>;
 export const resumeWriteSchema = resumeSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 }).partial();
 export type ResumeWrite = z.infer<typeof resumeWriteSchema>;
+
+export function normalizeResume(resume: Resume): Resume {
+  const seen = new Set(resume.sections.map((item) => item.key));
+  const sections = [
+    ...resume.sections.filter((item) =>
+      (RESUME_SECTION_KEYS as readonly string[]).includes(item.key),
+    ),
+    ...DEFAULT_RESUME_SECTIONS.filter((item) => !seen.has(item.key)).map((item) => ({ ...item })),
+  ];
+  let skillGroups = resume.skillGroups;
+  if (skillGroups.length === 0 && resume.skills.some((item) => item.trim())) {
+    skillGroups = [
+      {
+        id: "migrated-skills",
+        label: "专业技能",
+        items: resume.skills.filter((item) => item.trim()).join(" / "),
+      },
+    ];
+  }
+  const skills = skillGroups.length
+    ? skillGroups.flatMap((group) =>
+        group.items
+          .split(/[/、,，;；|]+/)
+          .map((item) => item.trim())
+          .filter(Boolean),
+      )
+    : resume.skills;
+  return { ...resume, sections, skillGroups, skills };
+}
 
 export function educationFromProfile(profile: Profile): z.infer<typeof resumeEducationSchema>[] {
   return profile.education.map((item) => ({
@@ -61,31 +162,39 @@ export function educationFromProfile(profile: Profile): z.infer<typeof resumeEdu
 }
 
 export function createResumeFromProfile(profile: Profile, id: string, at: string): Resume {
-  return resumeSchema.parse({
-    id,
-    profileId: profile.id,
-    templateId: "campus-onepage",
-    version: 0,
-    targetRole: "校招",
-    basics: {
-      name: profile.name,
-      phone: profile.phone,
-      email: profile.email,
-      summary: "",
-    },
-    education: educationFromProfile(profile),
-    internships: [],
-    projects: [],
-    skills: [],
-    awards: [],
-    createdAt: at,
-    updatedAt: at,
-  });
+  return normalizeResume(
+    resumeSchema.parse({
+      id,
+      profileId: profile.id,
+      templateId: "campus-onepage",
+      version: 0,
+      targetRole: "校招",
+      basics: {
+        name: profile.name,
+        phone: profile.phone,
+        email: profile.email,
+        location: profile.currentCity,
+        summary: "",
+      },
+      education: educationFromProfile(profile),
+      internships: [],
+      projects: [],
+      campus: [],
+      skills: [],
+      skillGroups: [
+        { id: "skill-lang", label: "语言 / 框架", items: "" },
+        { id: "skill-tool", label: "工具 / 其他", items: "" },
+      ],
+      awards: [],
+      createdAt: at,
+      updatedAt: at,
+    }),
+  );
 }
 
 /**
  * Profile → Resume.basics / education only.
- * Internships, projects, skills, awards, summary stay on the resume.
+ * Internships, projects, campus, skills, awards, summary stay on the resume.
  */
 export function pullIdentityFromProfile(resume: Resume, profile: Profile): Resume {
   return {
@@ -95,6 +204,7 @@ export function pullIdentityFromProfile(resume: Resume, profile: Profile): Resum
       name: profile.name,
       phone: profile.phone,
       email: profile.email,
+      location: profile.currentCity || resume.basics.location,
     },
     education: educationFromProfile(profile),
   };

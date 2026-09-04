@@ -19,10 +19,10 @@ export const CAMPUS_ONEPAGE_CSS = `
   padding: ${PAPER.paddingMm}mm;
   box-sizing: border-box;
   background: #fff;
-  color: #1a1a1a;
-  font-family: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun", serif;
-  font-size: 11pt;
-  line-height: 1.45;
+  color: #222;
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.42;
   overflow: hidden;
 }
 `;

@@ -50,7 +50,7 @@ onMounted(async () => {
     <main class="main">
       <header class="top">
         <h1>{{ route.meta.title }}</h1>
-        <p>档案可编辑；简历可一页预览并导出 PDF。网申预填从 W4 开始。</p>
+        <p>档案可编辑；简历为主题色一页纸，实时预览后导出 PDF。网申预填从 W4 开始。</p>
       </header>
       <router-view />
     </main>

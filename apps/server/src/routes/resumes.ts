@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import {
   createResumeFromProfile,
+  normalizeResume,
   profileSchema,
   resumeSchema,
   resumeWriteSchema,
@@ -12,7 +13,7 @@ import { newId, nowIso } from "../lib/time.js";
 export const resumeRoutes = new Hono();
 
 function rowToResume(row: ResumeRow): Resume {
-  return resumeSchema.parse(JSON.parse(row.payload));
+  return normalizeResume(resumeSchema.parse(JSON.parse(row.payload)));
 }
 
 function persist(resume: Resume, isNew: boolean) {
@@ -59,24 +60,24 @@ resumeRoutes.post("/", async (c) => {
     const profileRow = sqlite.prepare("SELECT * FROM profiles WHERE id = ?").get(body.profileId) as ProfileRow | undefined;
     if (!profileRow) return c.json({ error: "profile_not_found" }, 404);
     const profile = profileSchema.parse(JSON.parse(profileRow.payload));
-    const resume = resumeSchema.parse({
+    const resume = normalizeResume(resumeSchema.parse({
       ...createResumeFromProfile(profile, id, at),
       ...body,
       id,
       profileId: profile.id,
       createdAt: at,
       updatedAt: at,
-    });
+    }));
     persist(resume, true);
     return c.json(resume, 201);
   }
-  const resume = resumeSchema.parse({
+  const resume = normalizeResume(resumeSchema.parse({
     ...body,
     id,
     profileId: body.profileId ?? "",
     createdAt: at,
     updatedAt: at,
-  });
+  }));
   persist(resume, true);
   return c.json(resume, 201);
 });
@@ -87,13 +88,13 @@ resumeRoutes.put("/:id", async (c) => {
   if (!existing) return c.json({ error: "resume_not_found" }, 404);
   const body = resumeWriteSchema.parse(await c.req.json());
   const at = nowIso();
-  const resume = resumeSchema.parse({
+  const resume = normalizeResume(resumeSchema.parse({
     ...JSON.parse(existing.payload),
     ...body,
     id,
     createdAt: existing.created_at,
     updatedAt: at,
-  });
+  }));
   persist(resume, false);
   return c.json(resume);
 });

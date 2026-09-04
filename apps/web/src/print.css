@@ -24,6 +24,22 @@
     padding: 0 !important;
   }
 
+  .layout,
+  .preview-col,
+  .paper-frame,
+  .paper-scale,
+  .paper-host {
+    display: block !important;
+    position: static !important;
+    width: 210mm !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+    transform: none !important;
+  }
+
   .paper {
     box-shadow: none !important;
     margin: 0 !important;
