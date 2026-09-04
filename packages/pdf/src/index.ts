@@ -1,4 +1,4 @@
-export const CAMPUS_ONEPAGE_TEMPLATE_ID = "campus-onepage" as const;
+export const CAMPUS_ONEPAGE_TEMPLATE_ID = "campus-tech" as const;
 
 /** A4 in CSS millimeters. Padding chosen for typical 校招 uploads. */
 export const PAPER = {

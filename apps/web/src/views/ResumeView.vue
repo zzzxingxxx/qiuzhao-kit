@@ -5,6 +5,8 @@ import { resumeFileName } from "@qiuzhao/pdf";
 import {
   RESUME_SECTION_LABELS,
   RESUME_THEME_PRESETS,
+  applyResumeTemplate,
+  getResumeTemplate,
   normalizeResume,
   pullIdentityFromProfile,
   resumeSchema,
@@ -13,6 +15,7 @@ import {
   type ResumeSectionKey,
 } from "@qiuzhao/schema";
 import ResumePaper from "../components/ResumePaper.vue";
+import TemplateGallery from "../components/TemplateGallery.vue";
 
 const loading = ref(false);
 const saving = ref(false);
@@ -123,6 +126,13 @@ function pullFromProfile() {
   if (!resume.value || !profile.value) return;
   resume.value = pullIdentityFromProfile(resume.value, profile.value);
   ElMessage.success("已拉取档案中的姓名、联系方式和教育（实习/项目未改）");
+}
+
+function selectTemplate(id: string) {
+  if (!resume.value) return;
+  const tpl = getResumeTemplate(id);
+  resume.value = applyResumeTemplate(resume.value, id);
+  ElMessage.success(`已套用「${tpl.name}」，实习和项目未改`);
 }
 
 async function exportPdf() {
@@ -246,7 +256,7 @@ onBeforeUnmount(() => {
     <template v-else-if="resume">
       <div class="toolbar no-print">
         <div>
-          <el-tag>校招一页纸</el-tag>
+          <el-tag>{{ getResumeTemplate(resume.templateId).name }}</el-tag>
           <el-tag type="info">版本 v{{ resume.version }}</el-tag>
           <el-tag v-if="overflowing" type="danger">超出一页，请删减或改用紧凑排版</el-tag>
           <el-tag v-else type="success">当前未溢出一页</el-tag>
@@ -257,6 +267,8 @@ onBeforeUnmount(() => {
           <el-button type="primary" :loading="saving" @click="exportPdf">导出 PDF</el-button>
         </div>
       </div>
+
+      <TemplateGallery :model-value="resume.templateId" @update:model-value="selectTemplate" />
 
       <div class="layout">
         <div class="editor no-print">

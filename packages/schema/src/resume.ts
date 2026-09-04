@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Profile } from "./profile";
+import { resolveResumeTemplateId } from "./templates";
 
 export const RESUME_SECTION_KEYS = [
   "education",
@@ -92,7 +93,7 @@ export const resumeSkillGroupSchema = z.object({
 export const resumeSchema = z.object({
   id: z.string(),
   profileId: z.string(),
-  templateId: z.literal("campus-onepage").default("campus-onepage"),
+  templateId: z.string().default("campus-tech"),
   version: z.number().int().nonnegative().default(0),
   targetRole: z.string().default("校招"),
   basics: resumeBasicsSchema.default({}),
@@ -147,7 +148,13 @@ export function normalizeResume(resume: Resume): Resume {
           .filter(Boolean),
       )
     : resume.skills;
-  return { ...resume, sections, skillGroups, skills };
+  return {
+    ...resume,
+    templateId: resolveResumeTemplateId(resume.templateId),
+    sections,
+    skillGroups,
+    skills,
+  };
 }
 
 export function educationFromProfile(profile: Profile): z.infer<typeof resumeEducationSchema>[] {
@@ -166,7 +173,7 @@ export function createResumeFromProfile(profile: Profile, id: string, at: string
     resumeSchema.parse({
       id,
       profileId: profile.id,
-      templateId: "campus-onepage",
+      templateId: "campus-tech",
       version: 0,
       targetRole: "校招",
       basics: {
