@@ -8,6 +8,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@qiuzhao/fill": "workspace:*",
+    "@qiuzhao/schema": "workspace:*",
     "vue": "^3.5.13"
   },
   "devDependencies": {

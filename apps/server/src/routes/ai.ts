@@ -1,6 +1,13 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import {
+  compactArchive,
+  detectAts,
+  heuristicMap,
+  mergeFillPlans,
+  planFromModelJson,
+} from "@qiuzhao/fill";
+import {
   DEFAULT_AI_BASE_URL,
   DEFAULT_AI_MODEL,
   DEFAULT_AI_PROVIDER,
@@ -8,13 +15,19 @@ import {
   aiChatRequestSchema,
   aiSectionLabels,
   aiSettingsWriteSchema,
+  mapFormRequestSchema,
+  normalizeResume,
+  profileSchema,
+  resumeSchema,
   resolveAiSections,
   type AiChatAction,
   type AiModelItem,
   type AiSettingsPublic,
+  type Profile,
+  type Resume,
   type ResumeSectionKey,
 } from "@qiuzhao/schema";
-import { sqlite, type AiSettingsRow } from "../db/index.js";
+import { sqlite, type AiSettingsRow, type ProfileRow, type ResumeRow } from "../db/index.js";
 import { nowIso } from "../lib/time.js";
 
 export const aiRoutes = new Hono();
@@ -356,5 +369,163 @@ aiRoutes.post("/chat", async (c) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "chat_failed";
     return c.json({ error: "ai_chat_failed", message }, 502);
+  }
+});
+
+const MAP_FORM_PROMPT =
+  "你是本机「秋招网申助手」的填表对照器。只用简体中文思考，最终只输出 JSON，不要 markdown。" +
+  "把表单字段对到档案 / 简历里已有的事实。" +
+  "禁止编造公司、数字、证书、联系人；档案没有就 value 留空，skipReason 写「档案里没有」。" +
+  "姓名、性别、证件、手机、邮箱、政治面貌、城市、学校、专业、学历、GPA 只来自 profile，不要用简历覆盖。" +
+  "实习、项目、技能、自我评价来自 resume。" +
+  "到岗、期望城市、薪资、英语四级等来自 profile 字段或 qa。" +
+  "不填密码、验证码、登录用户名。" +
+  "下拉和单选的 value 必须是 options 里的原文。" +
+  "confidence：能直接对上为 high，吃不准就 low 并留空。" +
+  "source 写成 profile.name / profile.education.school / resume.summary / qa.cet4 这种路径。";
+
+function pickPrimaryProfile(items: Profile[]): Profile | null {
+  if (!items.length) return null;
+  return (
+    items.find((item) => item.name.trim()) ??
+    items.find((item) => item.phone.trim() || item.email.trim()) ??
+    items[0]
+  );
+}
+
+function loadProfile(id?: string): Profile | null {
+  if (id) {
+    const row = sqlite.prepare("SELECT * FROM profiles WHERE id = ?").get(id) as ProfileRow | undefined;
+    return row ? profileSchema.parse(JSON.parse(row.payload)) : null;
+  }
+  const rows = sqlite.prepare("SELECT * FROM profiles ORDER BY updated_at DESC").all() as ProfileRow[];
+  return pickPrimaryProfile(rows.map((row) => profileSchema.parse(JSON.parse(row.payload))));
+}
+
+function loadResume(id: string | undefined, profileId: string): Resume | null {
+  if (id) {
+    const row = sqlite.prepare("SELECT * FROM resumes WHERE id = ?").get(id) as ResumeRow | undefined;
+    return row ? normalizeResume(resumeSchema.parse(JSON.parse(row.payload))) : null;
+  }
+  const owned = sqlite
+    .prepare("SELECT * FROM resumes WHERE profile_id = ? ORDER BY updated_at DESC")
+    .all(profileId) as ResumeRow[];
+  const row =
+    owned[0] ??
+    (sqlite.prepare("SELECT * FROM resumes ORDER BY updated_at DESC").get() as ResumeRow | undefined);
+  return row ? normalizeResume(resumeSchema.parse(JSON.parse(row.payload))) : null;
+}
+
+function extractJsonObject(text: string): unknown {
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start < 0 || end <= start) return null;
+  try {
+    return JSON.parse(text.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+}
+
+aiRoutes.post("/map-form", async (c) => {
+  const body = mapFormRequestSchema.parse(await c.req.json());
+  const profile = loadProfile(body.profileId);
+  if (!profile) {
+    return c.json({ error: "profile_missing", message: "请先在网页填写档案（姓名 / 手机 / 邮箱）。" }, 400);
+  }
+  const resume = loadResume(body.resumeId, profile.id);
+  const ctx = { profile, resume };
+  const ats = detectAts({ href: body.pageUrl ?? "" });
+  const heuristic = heuristicMap(body.fields, ctx);
+  heuristic.atsNote = ats === "unknown" ? undefined : ats;
+  heuristic.profileName = profile.name;
+  heuristic.resumeRole = resume?.targetRole;
+
+  const resolved = resolveSettings();
+  if (!resolved.apiKey) {
+    heuristic.usedAi = false;
+    heuristic.needsKey = true;
+    heuristic.warning = "未配置 API Key，仅用标签规则对照。打开网页「设置」填写后，复杂题会更准。";
+    return c.json(heuristic);
+  }
+
+  try {
+    const model = resolved.model;
+    const brief = JSON.stringify(compactArchive(ctx)).slice(0, 14000);
+    const fieldsJson = JSON.stringify(
+      body.fields.map((field) => ({
+        id: field.id,
+        label: field.label,
+        name: field.name,
+        type: field.type,
+        required: field.required,
+        options: field.options.slice(0, 30),
+        placeholder: field.placeholder,
+      })),
+    ).slice(0, 8000);
+    const hintJson = JSON.stringify(
+      heuristic.fields.map((field) => ({
+        id: field.id,
+        value: field.value,
+        source: field.source,
+        confidence: field.confidence,
+        skipReason: field.skipReason,
+      })),
+    ).slice(0, 4000);
+    const res = await providerFetch(joinUrl(resolved.baseUrl, "chat/completions"), resolved.apiKey, {
+      method: "POST",
+      body: JSON.stringify({
+        model,
+        temperature: 0.1,
+        messages: [
+          { role: "system", content: MAP_FORM_PROMPT },
+          {
+            role: "user",
+            content:
+              `页面：${body.pageTitle ?? ""} ${body.pageUrl ?? ""}\n` +
+              `档案与简历 JSON：\n${brief}\n` +
+              `表单骨架：\n${fieldsJson}\n` +
+              `规则对照（身份和教育以档案为准）：\n${hintJson}\n` +
+              `只输出 JSON：{"fields":[{"id":"","value":"","source":"","confidence":"high|medium|low","skipReason":"可选"}]}`,
+          },
+        ],
+      }),
+    });
+    const text = await res.text();
+    let payload: unknown;
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      payload = null;
+    }
+    if (!res.ok) {
+      heuristic.usedAi = false;
+      heuristic.warning = "AI 对照失败，已退回标签规则。";
+      return c.json(heuristic);
+    }
+    const content =
+      payload && typeof payload === "object"
+        ? String(
+            (payload as { choices?: { message?: { content?: string } }[] }).choices?.[0]?.message?.content ?? "",
+          )
+        : "";
+    const parsed = extractJsonObject(content);
+    if (!parsed) {
+      heuristic.usedAi = false;
+      heuristic.warning = "AI 未返回对照表，已退回标签规则。";
+      return c.json(heuristic);
+    }
+    const aiPlan = planFromModelJson(parsed, body.fields, ctx);
+    const merged = mergeFillPlans(body.fields, heuristic, aiPlan);
+    merged.usedAi = true;
+    merged.needsKey = false;
+    merged.atsNote = heuristic.atsNote;
+    merged.profileName = profile.name;
+    merged.resumeRole = resume?.targetRole;
+    return c.json(merged);
+  } catch (error) {
+    heuristic.usedAi = false;
+    heuristic.warning = error instanceof Error ? `AI 对照失败：${error.message}` : "AI 对照失败，已退回标签规则。";
+    return c.json(heuristic);
   }
 });

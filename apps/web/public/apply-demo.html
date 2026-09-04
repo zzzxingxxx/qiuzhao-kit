@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>青梧科技 2027 校园招聘申请表</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: #f4f1ea;
+        color: #1f1b16;
+      }
+      main {
+        max-width: 720px;
+        margin: 32px auto 64px;
+        background: #fff;
+        border: 1px solid #e6dfd2;
+        border-radius: 16px;
+        padding: 28px 32px 36px;
+      }
+      .brand {
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        color: #0f766e;
+        font-weight: 650;
+      }
+      h1 {
+        margin: 6px 0 8px;
+        font-size: 24px;
+      }
+      .sub {
+        color: #6f675c;
+        font-size: 13px;
+        line-height: 1.6;
+        margin: 0 0 20px;
+      }
+      fieldset {
+        border: 1px solid #eee6d8;
+        border-radius: 12px;
+        margin: 0 0 16px;
+        padding: 14px 16px 16px;
+      }
+      legend {
+        padding: 0 6px;
+        font-weight: 650;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 108px 1fr;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      label.req::after {
+        content: " *";
+        color: #c62828;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #d9d0c3;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font: inherit;
+      }
+      textarea {
+        min-height: 96px;
+        resize: vertical;
+      }
+      .radios {
+        display: flex;
+        gap: 16px;
+      }
+      .radios label {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .radios input {
+        width: auto;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 8px;
+      }
+      button {
+        border-radius: 8px;
+        border: 1px solid #d9d0c3;
+        padding: 8px 14px;
+        font: inherit;
+        cursor: pointer;
+        background: #fff;
+      }
+      button[type="submit"] {
+        background: #0f766e;
+        border-color: #0f766e;
+        color: #fff;
+      }
+      #log {
+        margin-top: 12px;
+        font-size: 12px;
+        color: #6f675c;
+        min-height: 1.5em;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="brand">青梧科技 · CAMPUS HIRE</p>
+      <h1>2027 校园招聘申请表</h1>
+      <p class="sub">
+        这是本机演示用的普通申请表，不是北森。用浏览器扩展点「预填此页」，核对后再写入。提交按钮请你亲手点（本页会拦住真正提交）。
+      </p>
+      <form id="apply">
+        <input type="hidden" name="trace" value="demo-not-beisen" />
+        <fieldset>
+          <legend>基本信息</legend>
+          <div class="row">
+            <label class="req" for="fullName">姓名</label>
+            <input id="fullName" name="fullName" type="text" required autocomplete="name" />
+          </div>
+          <div class="row">
+            <span class="req">性别</span>
+            <div class="radios">
+              <label><input type="radio" name="gender" value="男" /> 男</label>
+              <label><input type="radio" name="gender" value="女" /> 女</label>
+            </div>
+          </div>
+          <div class="row">
+            <label class="req" for="mobile">手机</label>
+            <input id="mobile" name="mobile" type="tel" required autocomplete="tel" />
+          </div>
+          <div class="row">
+            <label class="req" for="mail">邮箱</label>
+            <input id="mail" name="mail" type="email" required autocomplete="email" />
+          </div>
+          <div class="row">
+            <label for="idNo">身份证号</label>
+            <input id="idNo" name="idNo" type="text" />
+          </div>
+          <div class="row">
+            <label for="politics">政治面貌</label>
+            <select id="politics" name="politics">
+              <option value="">请选择</option>
+              <option>中共党员</option>
+              <option>共青团员</option>
+              <option>群众</option>
+              <option>其他</option>
+            </select>
+          </div>
+          <div class="row">
+            <label for="city">现居住地</label>
+            <input id="city" name="city" type="text" />
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>教育经历</legend>
+          <div class="row">
+            <label class="req" for="school">学校</label>
+            <input id="school" name="school" type="text" required />
+          </div>
+          <div class="row">
+            <label class="req" for="major">专业</label>
+            <input id="major" name="major" type="text" required />
+          </div>
+          <div class="row">
+            <label for="degree">学历</label>
+            <select id="degree" name="degree">
+              <option value="">请选择</option>
+              <option>专科</option>
+              <option>本科</option>
+              <option>硕士</option>
+              <option>博士</option>
+            </select>
+          </div>
+          <div class="row">
+            <label for="gpa">GPA</label>
+            <input id="gpa" name="gpa" type="text" />
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>求职意向</legend>
+          <div class="row">
+            <label for="hopeCity">期望城市</label>
+            <input id="hopeCity" name="hopeCity" type="text" />
+          </div>
+          <div class="row">
+            <label for="salary">期望薪资</label>
+            <input id="salary" name="salary" type="text" />
+          </div>
+          <div class="row">
+            <label for="arrive">到岗时间</label>
+            <input id="arrive" name="arrive" type="text" />
+          </div>
+          <div class="row">
+            <label for="cet4">英语四级</label>
+            <input id="cet4" name="cet4" type="text" />
+          </div>
+          <div class="row">
+            <label for="emergency">紧急联系人</label>
+            <input id="emergency" name="emergency" type="text" placeholder="档案没有则应显示为缺项" />
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>补充</legend>
+          <div class="row">
+            <label for="summary">自我评价</label>
+            <textarea id="summary" name="summary"></textarea>
+          </div>
+          <div class="row">
+            <label for="loginPass">密码（应跳过）</label>
+            <input id="loginPass" name="loginPass" type="password" autocomplete="new-password" />
+          </div>
+          <div class="row">
+            <label for="captcha">验证码（应跳过）</label>
+            <input id="captcha" name="captcha" type="text" placeholder="请输入验证码" />
+          </div>
+          <div class="row">
+            <label for="cv">上传简历（应跳过）</label>
+            <input id="cv" name="cv" type="file" />
+          </div>
+        </fieldset>
+        <div class="actions">
+          <button type="submit">提交报名</button>
+          <button type="button" id="draft">保存草稿</button>
+        </div>
+      </form>
+      <p id="log">提交按钮尚未被点击。</p>
+    </main>
+    <script>
+      const form = document.getElementById("apply");
+      const log = document.getElementById("log");
+      window.__qzSubmitClicked = false;
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        window.__qzSubmitClicked = true;
+        log.textContent = "提交按钮被点了（演示页已拦截，不会真正提交）。扩展不应自动点它。";
+      });
+      document.getElementById("draft").addEventListener("click", () => {
+        log.textContent = "草稿未接入服务，这只是演示按钮。";
+      });
+    </script>
+  </body>
+</html>

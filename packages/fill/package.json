@@ -6,10 +6,17 @@
     ".": {
       "types": "./src/index.ts",
       "import": "./src/index.ts"
+    },
+    "./dom": {
+      "types": "./src/dom.ts",
+      "import": "./src/dom.ts"
     }
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@qiuzhao/schema": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.8.2"

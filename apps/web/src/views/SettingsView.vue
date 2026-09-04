@@ -140,7 +140,17 @@ onMounted(load);
           <button type="button" class="btn btn-ghost" :disabled="!settings?.hasKey" @click="clearKey">清除密钥</button>
         </el-form-item>
       </el-form>
-      <p class="hint">密钥文件：apps/server/data/app.db</p>
+      <p class="hint">密钥文件：apps/server/data/app.db。同一套密钥也用于网申预填对照。</p>
+    </section>
+
+    <section class="surface sheet ext">
+      <h2>网申预填</h2>
+      <p class="hint">
+        用扩展打开任意带标签的申请表，点「预填此页」。对照在本机完成，确认后只写入输入框，不点提交、不读密码。
+        演示页：
+        <a href="/apply-demo.html" target="_blank" rel="noreferrer">青梧科技校园招聘申请表</a>
+        （不是北森）。未配置密钥时仍可用姓名 / 手机 / 邮箱等规则对照。
+      </p>
     </section>
   </div>
 </template>
@@ -161,5 +171,11 @@ onMounted(load);
   margin: 6px 0 0;
   color: var(--muted);
   font-size: 12px;
+}
+.ext {
+  margin-top: 16px;
+}
+.ext a {
+  color: var(--accent);
 }
 </style>

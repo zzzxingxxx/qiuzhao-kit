@@ -54,6 +54,7 @@ pnpm dev
 
 ```bash
 curl http://127.0.0.1:8787/ai/settings
+curl -X POST http://127.0.0.1:8787/ai/map-form -H "Content-Type: application/json" -d "{\"fields\":[{\"id\":\"qz-0\",\"label\":\"姓名\",\"type\":\"text\"}]}"
 ```
 
 档案 / 简历 CRUD：
@@ -70,10 +71,10 @@ SQLite 文件：`apps/server/data/app.db`（不入库）。使用 Node 22 内置
 
 ```
 apps/web          工作台 / 档案 / 简历 / 看板 / 设置
-apps/extension    预填扩展（M2 对任意网申页填表，目前只检查本机服务）
+apps/extension    预填扩展（扫描当前页 → 本机对照 → 人确认后写入）
 apps/server       本机 API，只听 127.0.0.1
-packages/schema   Profile / Resume / Application / AI
-packages/fill     抽表单骨架并写回输入框（M2，目前仅 ATS 名字备注）
+packages/schema   Profile / Resume / Application / AI / 填表对照
+packages/fill     抽表单骨架、标签规则对照、写回输入框
 packages/pdf      一页纸 A4 尺寸与导出文件名
 docs/M2.md        M2 任意网申页 AI 预填
 ```
@@ -86,7 +87,7 @@ docs/M2.md        M2 任意网申页 AI 预填
 | M1a W2 档案表单 | 已完成 |
 | M1b W3 一页 PDF | 已完成（8 套完整模板 + 主题/模块/证件照） |
 | AI 助手（自定义 URL / Key / 拉模型 / 按模块改写） | 已完成 |
-| M2 任意网申页 AI 预填 | 未开始，见 [docs/M2.md](docs/M2.md) |
+| M2 任意网申页 AI 预填 | 已完成，见 [docs/M2.md](docs/M2.md)；演示页 `/apply-demo.html` |
 | M3 投递看板闭环 | 未开始 |
 
 ## 明确不做
