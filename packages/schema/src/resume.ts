@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Profile } from "./profile";
-import { resolveResumeTemplateId } from "./templates";
+import { createCompleteSampleResume, resolveResumeTemplateId } from "./templates";
 
 export const RESUME_SECTION_KEYS = [
   "education",
@@ -169,34 +169,24 @@ export function educationFromProfile(profile: Profile): z.infer<typeof resumeEdu
 }
 
 export function createResumeFromProfile(profile: Profile, id: string, at: string): Resume {
-  return normalizeResume(
-    resumeSchema.parse({
-      id,
-      profileId: profile.id,
-      templateId: "campus-tech",
-      version: 0,
-      targetRole: "校招",
-      basics: {
-        name: profile.name,
-        phone: profile.phone,
-        email: profile.email,
-        location: profile.currentCity,
-        summary: "",
-      },
-      education: educationFromProfile(profile),
-      internships: [],
-      projects: [],
-      campus: [],
-      skills: [],
-      skillGroups: [
-        { id: "skill-lang", label: "语言 / 框架", items: "" },
-        { id: "skill-tool", label: "工具 / 其他", items: "" },
-      ],
-      awards: [],
-      createdAt: at,
-      updatedAt: at,
-    }),
-  );
+  const complete = createCompleteSampleResume("campus-tech");
+  const hasEducation = profile.education.some((item) => item.school.trim());
+  return {
+    ...complete,
+    id,
+    profileId: profile.id,
+    version: 0,
+    createdAt: at,
+    updatedAt: at,
+    basics: {
+      ...complete.basics,
+      name: profile.name.trim() || complete.basics.name,
+      phone: profile.phone.trim() || complete.basics.phone,
+      email: profile.email.trim() || complete.basics.email,
+      location: profile.currentCity.trim() || complete.basics.location,
+    },
+    education: hasEducation ? educationFromProfile(profile) : complete.education,
+  };
 }
 
 /**

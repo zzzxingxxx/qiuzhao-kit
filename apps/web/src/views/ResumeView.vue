@@ -128,11 +128,11 @@ function pullFromProfile() {
   ElMessage.success("已拉取档案中的姓名、联系方式和教育（实习/项目未改）");
 }
 
-function selectTemplate(id: string) {
+async function selectTemplate(id: string) {
   if (!resume.value) return;
   const tpl = getResumeTemplate(id);
   resume.value = applyResumeTemplate(resume.value, id);
-  ElMessage.success(`已套用「${tpl.name}」，实习和项目未改`);
+  await save(`已套用完整模板「${tpl.name}」，请把示例经历改成你自己的`);
 }
 
 async function exportPdf() {

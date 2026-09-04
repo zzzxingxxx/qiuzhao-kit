@@ -1,4 +1,5 @@
 import type { Resume } from "./resume";
+import { buildCompleteSampleResume } from "./sample";
 
 export const RESUME_TEMPLATE_IDS = [
   "campus-tech",
@@ -77,16 +78,43 @@ export function getResumeTemplate(id: string | undefined): ResumeTemplateMeta {
   return RESUME_TEMPLATES.find((item) => item.id === resolved) ?? RESUME_TEMPLATES[0];
 }
 
-/** 只换排版和该模板的默认主题色/证件照开关，正文不动。 */
+export function createCompleteSampleResume(templateId: string): Resume {
+  return buildCompleteSampleResume(getResumeTemplate(templateId), {
+    id: `preview-${resolveResumeTemplateId(templateId)}`,
+    profileId: "preview",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    version: 0,
+  });
+}
+
+/**
+ * 套用完整模板：排版 + 主题 + 全模块示例。
+ * 已填写的姓名 / 手机 / 邮箱 / 证件照 / 教育会保留。
+ */
 export function applyResumeTemplate(resume: Resume, templateId: string): Resume {
   const tpl = getResumeTemplate(templateId);
+  const complete = buildCompleteSampleResume(tpl, {
+    id: resume.id,
+    profileId: resume.profileId,
+    createdAt: resume.createdAt,
+    updatedAt: resume.updatedAt,
+    version: resume.version,
+  });
+  const keepEducation = resume.education.some((item) => item.school.trim());
   return {
-    ...resume,
-    templateId: tpl.id,
-    theme: {
-      ...resume.theme,
-      color: tpl.color,
-      showPhoto: tpl.showPhoto,
+    ...complete,
+    basics: {
+      ...complete.basics,
+      name: resume.basics.name.trim() || complete.basics.name,
+      phone: resume.basics.phone.trim() || complete.basics.phone,
+      email: resume.basics.email.trim() || complete.basics.email,
+      photo: resume.basics.photo.trim() || complete.basics.photo,
+      wechat: resume.basics.wechat.trim() || complete.basics.wechat,
+      github: resume.basics.github.trim() || complete.basics.github,
+      website: resume.basics.website.trim() || complete.basics.website,
+      location: resume.basics.location.trim() || complete.basics.location,
     },
+    education: keepEducation ? resume.education : complete.education,
   };
 }
