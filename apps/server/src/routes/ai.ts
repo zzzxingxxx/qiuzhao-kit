@@ -143,33 +143,61 @@ function resumeBrief(resume: unknown): string {
   }
 }
 
+const PATCH_JSON =
+  '{"summary":"可选","internships":[{"id":"原id","bullets":["..."]}],"projects":[{"id":"原id","bullets":["..."]}],"campus":[{"id":"原id","bullets":["..."]}]}';
+
 function systemPrompt(action: string, jobDesc?: string): string {
   const base =
     "你是本机「秋招网申助手」里的简历写作助手。只用简体中文。" +
     "只根据用户提供的事实改写，禁止编造公司、数字、奖项或未出现的技术。" +
-    "校招一页纸：动词开头、量化结果、每条 20–40 字。";
+    "校招一页纸：动词开头、量化结果、每条大约 20–40 字。";
+  const jd = jobDesc?.trim() ? `\n岗位描述：\n${jobDesc.trim()}\n` : "";
   if (action === "polish") {
+    return base + "润色实习、项目、校园经历要点，保留原 id。只输出 JSON，不要 markdown：" + PATCH_JSON;
+  }
+  if (action === "star") {
     return (
       base +
-      "请润色实习和项目要点。只输出 JSON，不要 markdown：" +
-      '{"summary":"可选","internships":[{"id":"原id","bullets":["..."]}],"projects":[{"id":"原id","bullets":["..."]}]}'
+      "用 STAR（情境-任务-行动-结果）重写实习和项目要点，数字必须来自原文。只输出 JSON：" +
+      PATCH_JSON
     );
   }
   if (action === "summary") {
-    return (
-      base +
-      "根据简历生成 2–4 句自我评价。只输出 JSON：{\"summary\":\"...\"}"
-    );
+    return base + "根据简历生成 2–4 句自我评价。只输出 JSON：{\"summary\":\"...\"}";
   }
   if (action === "match") {
     return (
       base +
-      (jobDesc ? `岗位描述：\n${jobDesc}\n` : "") +
-      "按 JD 调整要点措辞，不编造经历。只输出 JSON：" +
-      '{"summary":"...","internships":[{"id":"原id","bullets":["..."]}],"projects":[{"id":"原id","bullets":["..."]}]}'
+      jd +
+      "按 JD 的用词改写要点，不添加没做过的事。只输出 JSON：" +
+      PATCH_JSON
     );
   }
-  return base + "普通对话用中文纯文本。用户若要求改简历，可在末尾附一段 JSON 补丁。";
+  if (action === "critique") {
+    return (
+      base +
+      "诊断这份校招简历。用中文纯文本，分三块：" +
+      "1) 一句话总评；2) 具体问题（空泛、缺数字、时间线、超一页风险），每条点到模块名；3) 优先改的 3 件事。" +
+      "不要输出 JSON，不要编造经历。"
+    );
+  }
+  if (action === "keywords") {
+    return (
+      base +
+      jd +
+      "从岗位描述提取关键词，对照当前简历。用中文纯文本列出：" +
+      "已覆盖的词、简历里没有但 JD 要求的词、不建议硬凑的词。" +
+      "没有 JD 时请说明需要粘贴岗位描述。不要输出 JSON。"
+    );
+  }
+  if (action === "interview") {
+    return (
+      base +
+      "根据实习和项目出 6–10 个面试追问。每问一行：先写会问什么，再写面试官想验证什么。" +
+      "不要替候选人编答案。不要输出 JSON。"
+    );
+  }
+  return base + "普通对话用中文纯文本。若用户要求改简历，可在末尾附一段 JSON 补丁：" + PATCH_JSON;
 }
 
 aiRoutes.get("/settings", (c) => c.json(publicSettings()));

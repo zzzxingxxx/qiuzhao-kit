@@ -55,7 +55,7 @@ export const RESUME_TEMPLATES: ResumeTemplateMeta[] = [
     description:
       "单栏 ATS 一页纸。范文：星海科技 / 澄数据两段后端实习，P99、QPS、覆盖率都有数；项目是网申助手与分布式评测。",
     layout: "tech",
-    color: "#1f4e79",
+    color: "#0f3d68",
     showPhoto: false,
     category: "研发",
     tags: ["ATS", "后端范文", "无照片"],
@@ -67,7 +67,7 @@ export const RESUME_TEMPLATES: ResumeTemplateMeta[] = [
     description:
       "居中姓名、证件照靠右。范文：青禾银行拜访纪要与华津集团宣讲执行，不堆技术名词。",
     layout: "classic",
-    color: "#1a1a1a",
+    color: "#111111",
     showPhoto: true,
     category: "正式",
     tags: ["证件照", "管培范文", "正式"],
@@ -79,7 +79,7 @@ export const RESUME_TEMPLATES: ResumeTemplateMeta[] = [
     description:
       "左栏照片、联系方式、技能。范文：澜图网络列表 LCP、木白出行小程序完成率，适合要证件照的互联网投递。",
     layout: "sidebar",
-    color: "#163a5f",
+    color: "#1d4a73",
     showPhoto: true,
     category: "双栏",
     tags: ["双栏", "前端范文", "证件照"],
@@ -139,7 +139,7 @@ export const RESUME_TEMPLATES: ResumeTemplateMeta[] = [
     description:
       "模块做成卡片。范文：礼包核销与留存、暑假试听获客、二手社群 1800 人，和产品经理范文分开。",
     layout: "card",
-    color: "#5b21b6",
+    color: "#6d28d9",
     showPhoto: false,
     category: "创意",
     tags: ["运营范文", "卡片", "现代"],

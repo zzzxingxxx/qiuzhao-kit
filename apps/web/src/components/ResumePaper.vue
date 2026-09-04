@@ -58,10 +58,12 @@ const sectionVariant = computed(() => {
     <!-- 左侧信息栏：照片 / 联系方式 / 技能 -->
     <template v-if="layout === 'sidebar'">
       <aside class="side-rail">
-        <img v-if="showPhoto" class="photo" :src="resume.basics.photo" alt="证件照" />
-        <div v-else class="photo-ph">{{ (resume.basics.name || "姓").slice(0, 1) }}</div>
-        <h1>{{ resume.basics.name || "姓名" }}</h1>
-        <p v-if="resume.targetRole" class="role">{{ resume.targetRole }}</p>
+        <div class="side-brand">
+          <img v-if="showPhoto" class="photo" :src="resume.basics.photo" alt="证件照" />
+          <div v-else class="photo-ph">{{ (resume.basics.name || "姓").slice(0, 1) }}</div>
+          <h1>{{ resume.basics.name || "姓名" }}</h1>
+          <p v-if="resume.targetRole" class="role">{{ resume.targetRole }}</p>
+        </div>
         <p class="side-label">联系方式</p>
         <p v-for="line in contacts" :key="line" class="side-line">{{ line }}</p>
         <template v-if="skillGroups.length || resume.skills.some((s) => s.trim())">
@@ -99,6 +101,7 @@ const sectionVariant = computed(() => {
     <template v-else-if="layout === 'classic'">
       <header class="head classic-head">
         <img v-if="showPhoto" class="photo classic-photo" :src="resume.basics.photo" alt="证件照" />
+        <p class="kicker">个人简历</p>
         <h1>{{ resume.basics.name || "姓名" }}</h1>
         <p v-if="resume.targetRole" class="role">{{ resume.targetRole }}</p>
         <p v-if="contacts.length" class="contact">{{ contacts.join("  ·  ") }}</p>
@@ -110,6 +113,7 @@ const sectionVariant = computed(() => {
     <template v-else-if="layout === 'serif'">
       <header class="head serif-head">
         <img v-if="showPhoto" class="photo classic-photo" :src="resume.basics.photo" alt="证件照" />
+        <p class="kicker">个人简历</p>
         <h1>{{ resume.basics.name || "姓名" }}</h1>
         <p class="serif-rule" />
         <p v-if="resume.targetRole" class="role">{{ resume.targetRole }}</p>
@@ -224,32 +228,49 @@ h1 {
   display: block;
   position: relative;
   text-align: center;
-  border-bottom: 1.5px solid #222;
-  min-height: 22mm;
+  border-bottom: none;
+  min-height: 0;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+}
+.layout-classic .kicker {
+  margin: 0;
+  font-size: 8.5pt;
+  letter-spacing: 0.55em;
+  color: #666;
 }
 .layout-classic h1 {
-  letter-spacing: 0.28em;
-  font-size: 22pt;
+  letter-spacing: 0.42em;
+  font-size: 24pt;
+  font-weight: 800;
 }
 .layout-classic .role {
   color: #333;
   font-weight: 500;
   margin: 4px 0 0;
+  letter-spacing: 0.2em;
 }
 .layout-classic .contact {
   color: #333;
+  margin-top: 6px;
 }
 .layout-classic .classic-photo,
 .layout-serif .classic-photo {
   position: absolute;
   top: 0;
   right: 0;
+  border: 1px solid #333;
 }
 .layout-classic :deep(h2) {
-  color: #111;
-  border-bottom: 1px solid #111;
+  background: #1a1a1a;
+  color: #fff;
+  border: none;
   justify-content: center;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.42em;
+  padding: 1px 0 0;
+  font-size: 10.5pt;
+  font-weight: 600;
+  margin-bottom: 4px;
 }
 .layout-classic :deep(h2::before) {
   display: none;
@@ -261,78 +282,137 @@ h1 {
 .banner {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   gap: 14px;
-  background: var(--resume-color, #1d4ed8);
-  color: #fff;
-  margin: -14mm -14mm 10mm;
-  padding: 12mm 14mm 10mm;
+  background: transparent;
+  color: inherit;
+  margin: -14mm -14mm 8mm;
+  padding: 8mm 14mm 8mm;
+  border-bottom: 4px solid var(--resume-color, #1d4ed8);
+  position: relative;
 }
-.banner h1,
-.banner .role,
-.banner .contact {
-  color: #fff;
+.banner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 7mm;
+  background: var(--resume-color, #1d4ed8);
+}
+.banner .identity {
+  padding-top: 8mm;
+}
+.banner h1 {
+  color: #0f172a;
+  font-size: 24pt;
+  letter-spacing: 0.04em;
 }
 .banner .role {
-  opacity: 0.92;
-  font-weight: 500;
+  background: var(--resume-color, #1d4ed8);
+  color: #fff;
+  border-radius: 4px;
+  padding: 1px 8px;
+  font-size: 9.5pt;
+  font-weight: 600;
 }
 .banner .contact {
-  opacity: 0.9;
+  color: #475569;
 }
 .banner .photo {
-  border: 2px solid rgba(255, 255, 255, 0.7);
+  margin-top: 8mm;
+  border: 1px solid #e2e8f0;
 }
 .layout-banner :deep(h2) {
-  border-bottom-color: #e5e7eb;
+  border-bottom: none;
+  border-left: 4px solid var(--resume-color, #1d4ed8);
+  padding-left: 8px;
+  letter-spacing: 0.08em;
 }
 .layout-banner :deep(h2::before) {
-  width: 8px;
-  height: 8px;
-  border-radius: 1px;
+  display: none;
 }
 
 .layout-tech {
-  box-shadow: inset 5px 0 0 var(--resume-color, #1f4e79), 0 10px 28px rgba(20, 30, 50, 0.12);
+  box-shadow: 0 10px 28px rgba(20, 30, 50, 0.12), inset 4px 0 0 var(--resume-color, #0f3d68);
 }
 .layout-tech .head {
-  border-bottom-width: 2.5px;
+  border-bottom: none;
+  padding-bottom: 2px;
+  margin-bottom: 6px;
+}
+.layout-tech h1 {
+  font-size: 22pt;
+  letter-spacing: 0.02em;
+  font-weight: 800;
+}
+.layout-tech .role {
+  font-size: 11pt;
+  font-weight: 600;
+}
+.layout-tech .contact {
+  color: #475569;
+  border-bottom: 1.75px solid var(--resume-color, #0f3d68);
+  padding-bottom: 8px;
+}
+.layout-tech :deep(h2) {
+  letter-spacing: 0.18em;
+  font-size: 10.5pt;
+  border-bottom-width: 1.5px;
+  padding-bottom: 2px;
+}
+.layout-tech :deep(h2::before) {
+  display: none;
 }
 
 .layout-sidebar {
   display: grid;
-  grid-template-columns: 64mm 1fr;
+  grid-template-columns: 62mm 1fr;
 }
 .side-rail {
-  background: var(--resume-color, #1f4e79);
-  color: #fff;
-  padding: 12mm 8mm;
+  background: #eef3f8;
+  color: #1e293b;
+  padding: 0 8mm 12mm;
   min-height: 297mm;
+  border-right: 1px solid #d5dee8;
+}
+.side-brand {
+  background: var(--resume-color, #1d4a73);
+  color: #fff;
+  margin: 0 -8mm 10px;
+  padding: 11mm 8mm 8mm;
+  text-align: center;
 }
 .side-rail h1 {
   color: #fff;
   font-size: 16pt;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   margin-top: 8px;
+  text-align: center;
 }
 .side-rail .role {
-  color: rgba(255, 255, 255, 0.88);
-  margin: 4px 0 10px;
+  color: #e2eaf3;
+  margin: 4px 0 0;
   font-size: 10pt;
+  text-align: center;
 }
 .side-rail .photo {
-  width: 28mm;
-  height: 36mm;
+  width: 32mm;
+  height: 32mm;
   display: block;
   margin: 0 auto 8px;
-  border: 2px solid rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #fff;
+  box-shadow: none;
 }
 .photo-ph {
-  width: 28mm;
-  height: 28mm;
+  width: 32mm;
+  height: 32mm;
   margin: 0 auto 8px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.18);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -341,11 +421,12 @@ h1 {
 }
 .side-label {
   margin: 14px 0 6px;
-  font-size: 9.5pt;
-  letter-spacing: 0.14em;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+  font-size: 9pt;
+  letter-spacing: 0.16em;
+  border-bottom: 1.5px solid var(--resume-color, #1d4a73);
   padding-bottom: 3px;
   font-weight: 700;
+  color: var(--resume-color, #1d4a73);
 }
 .side-line,
 .side-skill {
@@ -353,10 +434,11 @@ h1 {
   font-size: 9pt;
   line-height: 1.4;
   word-break: break-all;
+  color: #334155;
 }
 .side-skill strong {
   display: block;
-  opacity: 0.9;
+  color: #0f172a;
   margin-bottom: 1px;
 }
 .main {
@@ -374,35 +456,45 @@ h1 {
   position: relative;
   text-align: center;
   border-bottom: none;
-  min-height: 24mm;
-  margin-bottom: 8px;
+  min-height: 0;
+  margin-bottom: 4px;
   padding-bottom: 0;
 }
+.layout-serif .kicker {
+  margin: 0;
+  font-size: 8.5pt;
+  letter-spacing: 0.62em;
+  color: #666;
+}
 .layout-serif h1 {
-  letter-spacing: 0.42em;
+  letter-spacing: 0.5em;
   font-size: 22pt;
   font-weight: 600;
 }
 .serif-rule {
-  width: 42mm;
+  width: 48mm;
   height: 0;
-  margin: 6px auto 4px;
-  border-top: 1px solid #333;
-  border-bottom: 1px solid #333;
-  padding-top: 2px;
+  margin: 4px auto 4px;
+  border-top: 1.5px solid #333;
+  border-bottom: 0.5px solid #333;
+  padding-top: 3px;
 }
 .layout-serif .role {
   color: #333;
   font-weight: 500;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.28em;
 }
 .layout-serif :deep(h2) {
   justify-content: center;
-  letter-spacing: 0.28em;
-  border-top: 1px solid var(--resume-color, #3f3f46);
-  border-bottom: 1px solid var(--resume-color, #3f3f46);
-  padding: 2px 0;
+  letter-spacing: 0.42em;
+  border-top: 1.25px solid #333;
+  border-bottom: 1.25px solid #333;
+  padding: 1px 0;
   color: #222;
+  font-weight: 600;
+}
+.layout-serif :deep(.block) {
+  margin-bottom: 5px;
 }
 .layout-serif :deep(h2::before) {
   display: none;
@@ -415,23 +507,28 @@ h1 {
   padding: 0;
 }
 .split-left {
-  background: #f3f5f8;
-  padding: 12mm 7mm 12mm 12mm;
-  border-right: 3px solid var(--resume-color, #1e3a5f);
+  background: color-mix(in srgb, var(--resume-color, #1e3a5f) 8%, #fff);
+  padding: 12mm 7mm 12mm 14mm;
+  box-shadow: inset 4.5mm 0 0 var(--resume-color, #1e3a5f);
 }
 .split-right {
   padding: 12mm 12mm 12mm 8mm;
 }
 .split-left h1 {
   font-size: 16pt;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   margin: 6px 0 2px;
+  color: var(--resume-color, #1e3a5f);
 }
 .split-photo {
-  width: 24mm;
-  height: 32mm;
+  width: 28mm;
+  height: 28mm;
+  border-radius: 50%;
+  object-fit: cover;
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px #d5dee8;
 }
 .split-line {
   margin: 0 0 3px;
@@ -442,36 +539,58 @@ h1 {
 .layout-split :deep(h2) {
   font-size: 10.5pt;
 }
+.layout-split .split-left :deep(h2::before) {
+  display: none;
+}
 
 .layout-card .card-head {
   border-bottom: none;
-  background: transparent;
-  margin: 0 0 8px;
-  padding: 0 0 8px;
+  background: color-mix(in srgb, var(--resume-color, #6d28d9) 8%, #fff);
+  margin: -14mm -14mm 6mm;
+  padding: 9mm 14mm 7mm;
   align-items: center;
-  border-bottom: 3px solid var(--resume-color, #5b21b6);
 }
 .layout-card h1 {
-  color: var(--resume-color, #5b21b6);
-  letter-spacing: 0.04em;
+  color: var(--resume-color, #6d28d9);
+  letter-spacing: 0.02em;
+  font-size: 22pt;
 }
 .layout-card .role.pill {
-  background: color-mix(in srgb, var(--resume-color, #5b21b6) 12%, #fff);
-  color: var(--resume-color, #5b21b6);
+  background: var(--resume-color, #6d28d9);
+  color: #fff;
   border-radius: 999px;
-  padding: 1px 8px;
+  padding: 1px 10px;
   font-size: 9.5pt;
 }
 
 .layout-timeline .head {
   border-bottom: none;
-  padding-bottom: 6px;
+  padding-bottom: 4px;
+  display: block;
 }
 .layout-timeline h1 {
   color: var(--resume-color, #0f766e);
+  font-size: 22pt;
+}
+.layout-timeline .role {
+  display: inline-block;
+  border: 1px solid var(--resume-color, #0f766e);
+  padding: 0 8px;
+  border-radius: 2px;
+  font-size: 9.5pt;
+  margin-left: 8px;
 }
 .layout-timeline .contact {
   border-top: 2px solid var(--resume-color, #0f766e);
-  padding-top: 5px;
+  padding-top: 6px;
+  margin-top: 6px;
+}
+.layout-timeline :deep(h2::before) {
+  display: none;
+}
+.layout-timeline :deep(h2) {
+  letter-spacing: 0.14em;
+  border-bottom-width: 2px;
+  color: var(--resume-color, #0f766e);
 }
 </style>

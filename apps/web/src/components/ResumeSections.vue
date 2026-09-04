@@ -55,6 +55,8 @@ function rowClass(key: ResumeSectionKey) {
   }
   return "row";
 }
+
+const isTimeline = computed(() => props.variant === "timeline");
 </script>
 
 <template>
@@ -66,7 +68,7 @@ function rowClass(key: ResumeSectionKey) {
 
     <section v-else-if="key === 'education'" class="block" :class="variant">
       <h2>{{ label("education") }}</h2>
-      <div v-for="item in resume.education.filter((x) => x.school.trim())" :key="item.id" :class="rowClass('education')">
+      <div v-for="item in resume.education.filter((x) => x.school.trim())" :key="item.id" class="row">
         <div class="row-top">
           <strong>{{ item.school }}</strong>
           <span>{{ item.period }}</span>
@@ -79,41 +81,50 @@ function rowClass(key: ResumeSectionKey) {
     <section v-else-if="key === 'internships'" class="block" :class="variant">
       <h2>{{ label("internships") }}</h2>
       <div v-for="item in filledExp(resume.internships)" :key="item.id" :class="rowClass('internships')">
-        <div class="row-top">
-          <strong>{{ item.org }}{{ item.title ? "  ·  " + item.title : "" }}</strong>
-          <span>{{ item.period }}</span>
+        <span v-if="isTimeline" class="when">{{ item.period }}</span>
+        <div class="exp-body">
+          <div class="row-top">
+            <strong>{{ item.org }}{{ item.title ? "  ·  " + item.title : "" }}</strong>
+            <span v-if="!isTimeline">{{ item.period }}</span>
+          </div>
+          <p v-if="item.tech" class="muted">{{ item.tech }}</p>
+          <ul>
+            <li v-for="(bullet, i) in item.bullets.filter((b) => b.trim())" :key="i">{{ bullet }}</li>
+          </ul>
         </div>
-        <p v-if="item.tech" class="muted">{{ item.tech }}</p>
-        <ul>
-          <li v-for="(bullet, i) in item.bullets.filter((b) => b.trim())" :key="i">{{ bullet }}</li>
-        </ul>
       </div>
     </section>
 
     <section v-else-if="key === 'projects'" class="block" :class="variant">
       <h2>{{ label("projects") }}</h2>
       <div v-for="item in filledExp(resume.projects)" :key="item.id" :class="rowClass('projects')">
-        <div class="row-top">
-          <strong>{{ item.org }}{{ item.title ? "  ·  " + item.title : "" }}</strong>
-          <span>{{ item.period }}</span>
+        <span v-if="isTimeline" class="when">{{ item.period }}</span>
+        <div class="exp-body">
+          <div class="row-top">
+            <strong>{{ item.org }}{{ item.title ? "  ·  " + item.title : "" }}</strong>
+            <span v-if="!isTimeline">{{ item.period }}</span>
+          </div>
+          <p v-if="item.tech" class="muted">{{ item.tech }}</p>
+          <ul>
+            <li v-for="(bullet, i) in item.bullets.filter((b) => b.trim())" :key="i">{{ bullet }}</li>
+          </ul>
         </div>
-        <p v-if="item.tech" class="muted">{{ item.tech }}</p>
-        <ul>
-          <li v-for="(bullet, i) in item.bullets.filter((b) => b.trim())" :key="i">{{ bullet }}</li>
-        </ul>
       </div>
     </section>
 
     <section v-else-if="key === 'campus'" class="block" :class="variant">
       <h2>{{ label("campus") }}</h2>
       <div v-for="item in filledExp(resume.campus)" :key="item.id" :class="rowClass('campus')">
-        <div class="row-top">
-          <strong>{{ item.org }}{{ item.title ? "  ·  " + item.title : "" }}</strong>
-          <span>{{ item.period }}</span>
+        <span v-if="isTimeline" class="when">{{ item.period }}</span>
+        <div class="exp-body">
+          <div class="row-top">
+            <strong>{{ item.org }}{{ item.title ? "  ·  " + item.title : "" }}</strong>
+            <span v-if="!isTimeline">{{ item.period }}</span>
+          </div>
+          <ul>
+            <li v-for="(bullet, i) in item.bullets.filter((b) => b.trim())" :key="i">{{ bullet }}</li>
+          </ul>
         </div>
-        <ul>
-          <li v-for="(bullet, i) in item.bullets.filter((b) => b.trim())" :key="i">{{ bullet }}</li>
-        </ul>
       </div>
     </section>
 
@@ -121,7 +132,8 @@ function rowClass(key: ResumeSectionKey) {
       <h2>{{ label("skills") }}</h2>
       <template v-if="resume.skillGroups.some((g) => g.items.trim())">
         <p v-for="group in resume.skillGroups.filter((g) => g.items.trim())" :key="group.id" class="skill">
-          <strong v-if="group.label.trim()">{{ group.label }}：</strong>{{ group.items }}
+          <strong v-if="group.label.trim()">{{ group.label }}</strong>
+          <span>{{ group.items }}</span>
         </p>
       </template>
       <p v-else>{{ resume.skills.filter((s) => s.trim()).join("  ·  ") }}</p>
@@ -171,6 +183,9 @@ h2::before {
 .skill {
   margin: 1px 0;
 }
+.skill strong {
+  margin-right: 0.35em;
+}
 .muted {
   color: #555;
   font-size: 0.95em;
@@ -184,12 +199,24 @@ li {
 }
 
 .timeline-item {
-  position: relative;
-  padding-left: 14px;
-  margin-left: 4px;
-  border-left: 2px solid color-mix(in srgb, var(--resume-color, #0f766e) 55%, #fff);
+  display: grid;
+  grid-template-columns: 24mm minmax(0, 1fr);
+  gap: 8px;
+  margin: 0 0 8px;
 }
-.timeline-item::before {
+.timeline-item .when {
+  font-size: 8.5pt;
+  font-weight: 700;
+  color: var(--resume-color, #0f766e);
+  line-height: 1.35;
+  padding-top: 2px;
+}
+.timeline-item .exp-body {
+  border-left: 2px solid color-mix(in srgb, var(--resume-color, #0f766e) 45%, #fff);
+  padding-left: 10px;
+  position: relative;
+}
+.timeline-item .exp-body::before {
   content: "";
   position: absolute;
   left: -5px;
@@ -200,24 +227,14 @@ li {
   background: var(--resume-color, #0f766e);
   box-shadow: 0 0 0 2px #fff;
 }
-.timeline-item .row-top {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0;
-}
-.timeline-item .row-top span {
-  order: -1;
-  color: var(--resume-color, #0f766e);
-  font-size: 9pt;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
 
 .block.card {
-  border: 1px solid #e8e4ef;
-  border-radius: 7px;
-  padding: 7px 9px 6px;
-  background: #fbfafd;
+  border: 1px solid #ece8f4;
+  border-left: 3.5px solid var(--resume-color, #6d28d9);
+  border-radius: 8px;
+  padding: 5px 9px 3px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
 }
 .block.card h2 {
   border-bottom: none;

@@ -43,6 +43,10 @@ const resume = ref<Resume | null>(null);
 const paperHost = ref<HTMLElement | null>(null);
 const previewCol = ref<HTMLElement | null>(null);
 const scale = ref(0.55);
+const zoomMode = ref<"fit" | "manual">("fit");
+const showBig = ref(false);
+const MIN_ZOOM = 0.4;
+const MAX_ZOOM = 2;
 let observer: ResizeObserver | null = null;
 
 const tpl = computed(() => (resume.value ? getResumeTemplate(resume.value.templateId) : null));
@@ -73,12 +77,37 @@ function checkOverflow() {
 }
 
 function updateScale() {
+  if (zoomMode.value !== "fit") return;
   const pane = previewCol.value;
   const paper = paperHost.value?.querySelector(".paper") as HTMLElement | null;
   if (!pane || !paper) return;
   const sw = (pane.clientWidth - 40) / paper.offsetWidth;
-  const sh = (pane.clientHeight - 52) / paper.offsetHeight;
+  const sh = (pane.clientHeight - 72) / paper.offsetHeight;
   scale.value = Math.max(0.32, Math.min(1, sw, sh));
+}
+
+function setZoom(next: number) {
+  zoomMode.value = "manual";
+  scale.value = Math.round(Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, next)) * 100) / 100;
+}
+function zoomIn() {
+  setZoom(scale.value + 0.1);
+}
+function zoomOut() {
+  setZoom(scale.value - 0.1);
+}
+function zoomFit() {
+  zoomMode.value = "fit";
+  nextTick(updateScale);
+}
+function zoomHundred() {
+  setZoom(1);
+}
+
+function onPreviewWheel(event: WheelEvent) {
+  if (!event.ctrlKey && !event.metaKey) return;
+  event.preventDefault();
+  setZoom(scale.value + (event.deltaY < 0 ? 0.08 : -0.08));
 }
 
 function applyPatch(patch: AiPatch) {
@@ -90,6 +119,10 @@ function applyPatch(patch: AiPatch) {
   }
   for (const item of patch.projects ?? []) {
     const target = resume.value.projects.find((row) => row.id === item.id);
+    if (target && item.bullets?.length) target.bullets = item.bullets;
+  }
+  for (const item of patch.campus ?? []) {
+    const target = resume.value.campus.find((row) => row.id === item.id);
     if (target && item.bullets?.length) target.bullets = item.bullets;
   }
 }
@@ -277,12 +310,16 @@ onMounted(async () => {
     updateScale();
   });
   if (paperHost.value) observer.observe(paperHost.value);
-  if (previewCol.value) observer.observe(previewCol.value);
+  if (previewCol.value) {
+    observer.observe(previewCol.value);
+    previewCol.value.addEventListener("wheel", onPreviewWheel, { passive: false });
+  }
   window.addEventListener("resize", updateScale);
 });
 
 onBeforeUnmount(() => {
   observer?.disconnect();
+  previewCol.value?.removeEventListener("wheel", onPreviewWheel);
   window.removeEventListener("resize", updateScale);
   if (activeResume.value === resume.value) activeResume.value = null;
   applyAiPatch.value = null;
@@ -475,13 +512,26 @@ onBeforeUnmount(() => {
         </div>
 
         <div ref="previewCol" class="preview-col">
-          <div class="preview-meta no-print">A4 · {{ Math.round(scale * 100) }}%</div>
+          <div class="preview-toolbar no-print">
+            <span>A4 预览</span>
+            <div class="zoom">
+              <button type="button" class="btn" :disabled="scale <= MIN_ZOOM" @click="zoomOut">−</button>
+              <b>{{ Math.round(scale * 100) }}%</b>
+              <button type="button" class="btn" :disabled="scale >= MAX_ZOOM" @click="zoomIn">+</button>
+              <button type="button" class="btn" :class="{ on: zoomMode === 'manual' && scale === 0.5 }" @click="setZoom(0.5)">50%</button>
+              <button type="button" class="btn" :class="{ on: zoomMode === 'manual' && scale === 0.75 }" @click="setZoom(0.75)">75%</button>
+              <button type="button" class="btn" :class="{ on: zoomMode === 'fit' }" @click="zoomFit">适应窗口</button>
+              <button type="button" class="btn" :class="{ on: zoomMode === 'manual' && scale === 1 }" @click="zoomHundred">100%</button>
+              <button type="button" class="btn btn-primary" @click="showBig = true">放大查看</button>
+            </div>
+          </div>
           <div
             class="paper-frame"
             :style="{
               width: `calc(210mm * ${scale})`,
               height: `calc(297mm * ${scale})`,
             }"
+            @dblclick="showBig = true"
           >
             <div class="paper-scale" :style="{ transform: `scale(${scale})` }">
               <div ref="paperHost" class="paper-host">
@@ -494,6 +544,12 @@ onBeforeUnmount(() => {
 
       <el-dialog v-model="showTemplates" title="选择完整模板" width="92%" top="4vh" append-to-body class="no-print" destroy-on-close>
         <TemplateGallery :model-value="resume.templateId" @update:model-value="selectTemplate" />
+      </el-dialog>
+      <el-dialog v-model="showBig" title="A4 原大预览" width="860px" top="2vh" append-to-body class="no-print" destroy-on-close>
+        <p class="hint">按实际纸面大小查看。可滚动。打印仍用「导出 PDF」。</p>
+        <div class="big-preview">
+          <ResumePaper :resume="resume" />
+        </div>
       </el-dialog>
     </template>
   </div>
@@ -649,14 +705,55 @@ onBeforeUnmount(() => {
   align-items: center;
   padding: 12px 12px 20px;
 }
-.preview-meta {
-  align-self: flex-start;
-  color: #5c564c;
+.preview-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: #d7dee8;
+  padding: 4px 0 10px;
+  color: #475569;
   font-size: 12px;
-  margin-bottom: 8px;
+}
+.zoom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.zoom b {
+  min-width: 40px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink);
+}
+.zoom .btn {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+.zoom .btn.on {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: #fff;
 }
 .paper-frame {
   overflow: hidden;
+  cursor: zoom-in;
+}
+.big-preview {
+  display: flex;
+  justify-content: center;
+  overflow: auto;
+  max-height: 82vh;
+  background: #d7dee8;
+  padding: 16px;
+  border-radius: 10px;
 }
 .paper-scale {
   transform-origin: top left;
