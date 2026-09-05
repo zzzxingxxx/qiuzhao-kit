@@ -23,6 +23,7 @@ import {
   type AiChatAction,
   type AiModelItem,
   type AiSettingsPublic,
+  type FillFieldPlan,
   type Profile,
   type Resume,
   type ResumeSectionKey,
@@ -34,6 +35,7 @@ export const aiRoutes = new Hono();
 
 const SETTINGS_ID = "default";
 const FETCH_MS = 45_000;
+const MAP_FORM_MS = 90_000;
 
 type ResolvedAi = {
   baseUrl: string;
@@ -118,7 +120,12 @@ function publicSettings(): AiSettingsPublic {
   };
 }
 
-async function providerFetch(url: string, apiKey: string, init?: RequestInit): Promise<Response> {
+async function providerFetch(
+  url: string,
+  apiKey: string,
+  init?: RequestInit,
+  timeoutMs = FETCH_MS,
+): Promise<Response> {
   const headers = new Headers(init?.headers);
   headers.set("Authorization", `Bearer ${apiKey}`);
   if (init?.body && !headers.has("Content-Type")) {
@@ -127,7 +134,37 @@ async function providerFetch(url: string, apiKey: string, init?: RequestInit): P
   return fetch(url, {
     ...init,
     headers,
-    signal: AbortSignal.timeout(FETCH_MS),
+    signal: init?.signal ?? AbortSignal.timeout(timeoutMs),
+  });
+}
+
+function isTimeoutError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const name = (error as { name?: string }).name ?? "";
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    name === "TimeoutError" ||
+    name === "AbortError" ||
+    /aborted due to timeout|The operation was aborted/i.test(message)
+  );
+}
+
+function mapFormAiWarning(error: unknown): string {
+  if (isTimeoutError(error)) return "AI 对照超时，已用标签规则。请核对后再写入。";
+  const message = error instanceof Error ? error.message : "";
+  if (/fetch failed|ECONNREFUSED|ENOTFOUND|certificate|ECONNRESET/i.test(message)) {
+    return "连不上 AI 接口，已用标签规则对照。";
+  }
+  return "AI 对照失败，已用标签规则。请核对后再写入。";
+}
+
+/** High-confidence hits and known-empty slots don't need the model. */
+function fieldsNeedingAi(plan: { fields: FillFieldPlan[] }): FillFieldPlan[] {
+  return plan.fields.filter((field) => {
+    if (field.skipReason?.startsWith("不填")) return false;
+    if (field.confidence === "high" && field.value.trim()) return false;
+    if (!field.value.trim() && field.source && (field.skipReason ?? "").includes("档案里没有")) return false;
+    return true;
   });
 }
 
@@ -451,11 +488,21 @@ aiRoutes.post("/map-form", async (c) => {
     return c.json(heuristic);
   }
 
+  const pending = fieldsNeedingAi(heuristic);
+  if (!pending.length) {
+    heuristic.usedAi = false;
+    heuristic.needsKey = false;
+    return c.json(heuristic);
+  }
+
+  const pendingIds = new Set(pending.map((field) => field.id));
+  const pendingFields = body.fields.filter((field) => pendingIds.has(field.id));
+
   try {
     const model = resolved.model;
-    const brief = JSON.stringify(compactArchive(ctx)).slice(0, 14000);
+    const brief = JSON.stringify(compactArchive(ctx)).slice(0, 8000);
     const fieldsJson = JSON.stringify(
-      body.fields.map((field) => ({
+      pendingFields.map((field) => ({
         id: field.id,
         label: field.label,
         name: field.name,
@@ -464,35 +511,41 @@ aiRoutes.post("/map-form", async (c) => {
         options: field.options.slice(0, 30),
         placeholder: field.placeholder,
       })),
-    ).slice(0, 8000);
+    ).slice(0, 6000);
     const hintJson = JSON.stringify(
-      heuristic.fields.map((field) => ({
+      pending.map((field) => ({
         id: field.id,
         value: field.value,
         source: field.source,
         confidence: field.confidence,
         skipReason: field.skipReason,
       })),
-    ).slice(0, 4000);
-    const res = await providerFetch(joinUrl(resolved.baseUrl, "chat/completions"), resolved.apiKey, {
-      method: "POST",
-      body: JSON.stringify({
-        model,
-        temperature: 0.1,
-        messages: [
-          { role: "system", content: MAP_FORM_PROMPT },
-          {
-            role: "user",
-            content:
-              `页面：${body.pageTitle ?? ""} ${body.pageUrl ?? ""}\n` +
-              `档案与简历 JSON：\n${brief}\n` +
-              `表单骨架：\n${fieldsJson}\n` +
-              `规则对照（身份和教育以档案为准）：\n${hintJson}\n` +
-              `只输出 JSON：{"fields":[{"id":"","value":"","source":"","confidence":"high|medium|low","skipReason":"可选"}]}`,
-          },
-        ],
-      }),
-    });
+    ).slice(0, 3000);
+    const res = await providerFetch(
+      joinUrl(resolved.baseUrl, "chat/completions"),
+      resolved.apiKey,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          model,
+          temperature: 0.1,
+          max_tokens: 1500,
+          messages: [
+            { role: "system", content: MAP_FORM_PROMPT },
+            {
+              role: "user",
+              content:
+                `页面：${body.pageTitle ?? ""} ${body.pageUrl ?? ""}\n` +
+                `档案与简历 JSON：\n${brief}\n` +
+                `尚未对上的字段：\n${fieldsJson}\n` +
+                `规则对照（身份和教育以档案为准）：\n${hintJson}\n` +
+                `只输出这些字段的 JSON：{"fields":[{"id":"","value":"","source":"","confidence":"high|medium|low","skipReason":"可选"}]}`,
+            },
+          ],
+        }),
+      },
+      MAP_FORM_MS,
+    );
     const text = await res.text();
     let payload: unknown;
     try {
@@ -502,7 +555,7 @@ aiRoutes.post("/map-form", async (c) => {
     }
     if (!res.ok) {
       heuristic.usedAi = false;
-      heuristic.warning = "AI 对照失败，已退回标签规则。";
+      heuristic.warning = "AI 对照失败，已用标签规则。请核对后再写入。";
       return c.json(heuristic);
     }
     const content =
@@ -514,7 +567,7 @@ aiRoutes.post("/map-form", async (c) => {
     const parsed = extractJsonObject(content);
     if (!parsed) {
       heuristic.usedAi = false;
-      heuristic.warning = "AI 未返回对照表，已退回标签规则。";
+      heuristic.warning = "AI 未返回对照表，已用标签规则。请核对后再写入。";
       return c.json(heuristic);
     }
     const aiPlan = planFromModelJson(parsed, body.fields, ctx);
@@ -529,7 +582,7 @@ aiRoutes.post("/map-form", async (c) => {
     return c.json(merged);
   } catch (error) {
     heuristic.usedAi = false;
-    heuristic.warning = error instanceof Error ? `AI 对照失败：${error.message}` : "AI 对照失败，已退回标签规则。";
+    heuristic.warning = mapFormAiWarning(error);
     return c.json(heuristic);
   }
 });
