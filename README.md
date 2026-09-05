@@ -22,7 +22,7 @@ pnpm dev
 | --- | --- |
 | 本机 API | http://127.0.0.1:8787/health |
 | 网页 | http://127.0.0.1:5173 |
-| 扩展 | `apps/extension` 用 `pnpm dev:ext`，再在浏览器加载 `.output/chrome-mv3` |
+| 扩展 | 网页顶栏 / 工作台 / 设置里点「打开预填浏览器」，会用独立配置打开已加载扩展的 Chrome / Edge |
 
 ## 简历模板
 
@@ -71,7 +71,7 @@ SQLite 文件：`apps/server/data/app.db`（不入库）。使用 Node 22 内置
 
 ```
 apps/web          工作台 / 档案 / 简历 / 看板 / 设置
-apps/extension    预填扩展（扫描当前页 → 本机对照 → 人确认后写入；缺项可记入档案）
+apps/extension    预填扩展（网页一点即可打开已加载窗口；扫描当前页 → 本机对照 → 人确认后写入；缺项可记入档案）
 apps/server       本机 API，只听 127.0.0.1
 packages/schema   Profile / Resume / Application / AI / 填表对照
 packages/fill     抽表单骨架、标签规则对照、写回输入框

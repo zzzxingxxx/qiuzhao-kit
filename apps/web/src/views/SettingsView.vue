@@ -8,8 +8,9 @@ import {
   type AiModelItem,
   type AiSettingsPublic,
 } from "@qiuzhao/schema";
-import { fetchAiModels, getAiSettings, saveAiSettings } from "../api";
+import { fetchAiModels, getAiSettings, getExtensionStatus, saveAiSettings, type ExtensionStatus } from "../api";
 import { aiReady } from "../ai-ui";
+import LaunchExtButton from "../components/LaunchExtButton.vue";
 
 const loading = ref(false);
 const saving = ref(false);
@@ -20,6 +21,25 @@ const apiKey = ref("");
 const model = ref(DEFAULT_AI_MODEL);
 const models = ref<AiModelItem[]>([]);
 const showKey = ref(false);
+const extStatus = ref<ExtensionStatus | null>(null);
+
+async function loadExt() {
+  try {
+    extStatus.value = await getExtensionStatus();
+  } catch {
+    extStatus.value = null;
+  }
+}
+
+async function copyExtDir() {
+  if (!extStatus.value?.extensionDir) return;
+  try {
+    await navigator.clipboard.writeText(extStatus.value.extensionDir);
+    ElMessage.success("已复制扩展目录");
+  } catch {
+    ElMessage.error("复制失败");
+  }
+}
 
 async function load() {
   loading.value = true;
@@ -90,7 +110,10 @@ async function clearKey() {
   }
 }
 
-onMounted(load);
+onMounted(() => {
+  void load();
+  void loadExt();
+});
 </script>
 
 <template>
@@ -146,11 +169,33 @@ onMounted(load);
     <section class="surface sheet ext">
       <h2>网申预填</h2>
       <p class="hint">
-        用扩展打开任意带标签的申请表，点「预填此页」。对照在本机完成，确认后只写入输入框，不点提交、不读密码。
-        档案没有的题可以在扩展里补，或先在网页上填再「从本页同步」，勾选记入档案后下次不用再填。
-        演示页：
+        浏览器不允许网页把扩展装进你正在用的 Chrome。点下面按钮会打开一个专用窗口，扩展已经装好。
+        在那个窗口打开网申页，点工具栏「秋招网申助手」→「预填此页」。不会改你平时的浏览器配置，也不会自动提交。
+      </p>
+      <div class="ext-actions">
+        <LaunchExtButton label="打开预填浏览器（演示页）" />
+        <LaunchExtButton plain target="home" label="打开工作台" />
+      </div>
+      <ul v-if="extStatus" class="ext-facts">
+        <li>
+          <b>浏览器</b>
+          <span>{{ extStatus.browser ? extStatus.browser.name : "未找到 Chrome / Edge" }}</span>
+        </li>
+        <li>
+          <b>扩展</b>
+          <span>{{ extStatus.built ? "已就绪，点按钮即打开" : "尚未构建，首次打开时会自动打包" }}</span>
+        </li>
+      </ul>
+      <p class="hint">
+        对照在本机完成，确认后只写入输入框，不点提交、不读密码。档案没有的题可以在扩展里补，或先在网页上填再「从本页同步」。
+        演示页也可在当前窗口打开：
         <a href="/apply-demo.html" target="_blank" rel="noreferrer">青梧科技校园招聘申请表</a>
-        （不是北森）。未配置密钥时仍可用姓名 / 手机 / 邮箱等规则对照。
+        （当前窗口没有扩展）。未配置密钥时仍可用姓名 / 手机 / 邮箱等规则对照。
+      </p>
+      <p v-if="extStatus" class="hint fallback">
+        找不到浏览器时，才需要到 <code>chrome://extensions</code> 选「加载已解压的扩展」，目录：
+        <code>{{ extStatus.extensionDir }}</code>
+        <button type="button" class="btn btn-ghost copy" @click="copyExtDir">复制目录</button>
       </p>
     </section>
   </div>
@@ -178,5 +223,42 @@ onMounted(load);
 }
 .ext a {
   color: var(--accent);
+}
+.ext-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.ext-facts {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 0;
+  margin: 0 0 12px;
+}
+.ext-facts li {
+  background: var(--chip);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.ext-facts b {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.ext-facts span {
+  font-size: 13px;
+}
+.fallback {
+  margin-top: 8px;
+}
+.copy {
+  height: 28px;
+  padding: 0 8px;
+  margin-left: 6px;
+  vertical-align: middle;
 }
 </style>

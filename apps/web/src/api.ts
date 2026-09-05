@@ -84,6 +84,33 @@ export function fetchAiModels() {
   });
 }
 
+export type ExtensionStatus = {
+  ok: boolean;
+  browser: { name: string; path: string } | null;
+  extensionDir: string;
+  built: boolean;
+  profileDir: string;
+};
+
+export type ExtensionLaunchResult = {
+  ok: boolean;
+  browser: string;
+  url: string;
+  rebuilt: boolean;
+  extensionDir: string;
+};
+
+export function getExtensionStatus() {
+  return request<ExtensionStatus>("/extension/status");
+}
+
+export function launchExtensionBrowser(body?: { url?: string }) {
+  return request<ExtensionLaunchResult>("/extension/launch", {
+    method: "POST",
+    body: JSON.stringify(body ?? {}),
+  });
+}
+
 export function chatAi(body: {
   messages?: { role: "user" | "assistant" | "system"; content: string }[];
   prompt?: string;

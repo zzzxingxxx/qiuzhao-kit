@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import { dbPath } from "./db/index.js";
 import { aiRoutes } from "./routes/ai.js";
 import { applicationRoutes } from "./routes/applications.js";
+import { extensionRoutes } from "./routes/extension.js";
 import { profileRoutes } from "./routes/profiles.js";
 import { resumeRoutes } from "./routes/resumes.js";
 
@@ -39,6 +40,7 @@ app.route("/profiles", profileRoutes);
 app.route("/resumes", resumeRoutes);
 app.route("/applications", applicationRoutes);
 app.route("/ai", aiRoutes);
+app.route("/extension", extensionRoutes);
 
 app.onError((err, c) => {
   if (err.name === "ZodError") {
