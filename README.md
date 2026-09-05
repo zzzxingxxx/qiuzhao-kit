@@ -78,6 +78,7 @@ packages/fill     抽表单骨架、标签规则对照、写回输入框
 packages/pdf      一页纸 A4 尺寸与导出文件名
 docs/M2.md        M2 任意网申页 AI 预填
 docs/M3.md        M3 投递看板闭环
+docs/M4.md        M4 校招信息汇总去重（方案，未实现）
 ```
 
 ## 阶段
@@ -90,6 +91,7 @@ docs/M3.md        M3 投递看板闭环
 | AI 助手（自定义 URL / Key / 拉模型 / 按模块改写） | 已完成 |
 | M2 任意网申页 AI 预填 | 已完成，见 [docs/M2.md](docs/M2.md)；演示页 `/apply-demo.html` |
 | M3 投递看板闭环 | 已完成，见 [docs/M3.md](docs/M3.md)；网页 `/board`，扩展「投递」列表 |
+| M4 校招信息汇总去重 | 未开始，方案见 [docs/M4.md](docs/M4.md) |
 
 ## 明确不做
 
