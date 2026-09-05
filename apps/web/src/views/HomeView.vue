@@ -11,7 +11,7 @@ import {
 } from "@qiuzhao/schema";
 import { getAiSettings, listApplications, listProfiles, listResumes, pickPrimaryProfile } from "../api";
 import { aiDrawerOpen, aiReady } from "../ai-ui";
-import LaunchExtButton from "../components/LaunchExtButton.vue";
+import LoadExtensionButton from "../components/LoadExtensionButton.vue";
 import ResumePaper from "../components/ResumePaper.vue";
 
 const router = useRouter();
@@ -71,7 +71,7 @@ onMounted(async () => {
           <button type="button" class="btn btn-primary" @click="router.push('/templates')">浏览完整模板</button>
           <button type="button" class="btn" @click="router.push('/resume')">打开简历工作室</button>
           <button type="button" class="btn" @click="aiDrawerOpen = true">AI 润色</button>
-          <LaunchExtButton label="打开预填浏览器" />
+          <LoadExtensionButton />
         </div>
         <ul class="facts">
           <li><b>{{ profileState }}</b><span>档案</span></li>

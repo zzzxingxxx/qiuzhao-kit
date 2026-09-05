@@ -15,6 +15,11 @@ export default defineContentScript({
   matches: ["http://*/*", "https://*/*"],
   runAt: "document_idle",
   main() {
+    try {
+      document.documentElement.setAttribute("data-qiuzhao-ext", "1");
+    } catch {
+      /* ignore */
+    }
     browser.runtime.onMessage.addListener((msg: { type?: string; items?: unknown; fields?: unknown }, _sender, sendResponse) => {
       try {
         if (msg?.type === "QZ_EXTRACT") {

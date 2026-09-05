@@ -10,7 +10,7 @@ import {
 } from "@qiuzhao/schema";
 import { fetchAiModels, getAiSettings, getExtensionStatus, saveAiSettings, type ExtensionStatus } from "../api";
 import { aiReady } from "../ai-ui";
-import LaunchExtButton from "../components/LaunchExtButton.vue";
+import LoadExtensionButton from "../components/LoadExtensionButton.vue";
 
 const loading = ref(false);
 const saving = ref(false);
@@ -28,16 +28,6 @@ async function loadExt() {
     extStatus.value = await getExtensionStatus();
   } catch {
     extStatus.value = null;
-  }
-}
-
-async function copyExtDir() {
-  if (!extStatus.value?.extensionDir) return;
-  try {
-    await navigator.clipboard.writeText(extStatus.value.extensionDir);
-    ElMessage.success("已复制扩展目录");
-  } catch {
-    ElMessage.error("复制失败");
   }
 }
 
@@ -169,33 +159,26 @@ onMounted(() => {
     <section class="surface sheet ext">
       <h2>网申预填</h2>
       <p class="hint">
-        浏览器不允许网页把扩展装进你正在用的 Chrome。点下面按钮会打开一个专用窗口，扩展已经装好。
-        在那个窗口打开网申页，点工具栏「秋招网申助手」→「预填此页」。不会改你平时的浏览器配置，也不会自动提交。
+        点「加载扩展」，再点确定，扩展会装进你正在用的 Chrome。然后打开任意网申页，点工具栏「秋招网申助手」→「预填此页」。
+        确认后只写入输入框，不点提交、不读密码。
       </p>
       <div class="ext-actions">
-        <LaunchExtButton label="打开预填浏览器（演示页）" />
-        <LaunchExtButton plain target="home" label="打开工作台" />
+        <LoadExtensionButton />
       </div>
       <ul v-if="extStatus" class="ext-facts">
         <li>
           <b>浏览器</b>
-          <span>{{ extStatus.browser ? extStatus.browser.name : "未找到 Chrome / Edge" }}</span>
+          <span>{{ extStatus.browser ? extStatus.browser.name : "未找到 Chrome" }}</span>
         </li>
         <li>
           <b>扩展</b>
-          <span>{{ extStatus.built ? "已就绪，点按钮即打开" : "尚未构建，首次打开时会自动打包" }}</span>
+          <span>{{ extStatus.installed ? "已加载成功" : extStatus.built ? "未加载，点按钮后确定即可" : "首次加载时会自动构建" }}</span>
         </li>
       </ul>
       <p class="hint">
-        对照在本机完成，确认后只写入输入框，不点提交、不读密码。档案没有的题可以在扩展里补，或先在网页上填再「从本页同步」。
-        演示页也可在当前窗口打开：
+        档案没有的题可以在扩展里补，或先在网页上填再「从本页同步」。演示页：
         <a href="/apply-demo.html" target="_blank" rel="noreferrer">青梧科技校园招聘申请表</a>
-        （当前窗口没有扩展）。未配置密钥时仍可用姓名 / 手机 / 邮箱等规则对照。
-      </p>
-      <p v-if="extStatus" class="hint fallback">
-        找不到浏览器时，才需要到 <code>chrome://extensions</code> 选「加载已解压的扩展」，目录：
-        <code>{{ extStatus.extensionDir }}</code>
-        <button type="button" class="btn btn-ghost copy" @click="copyExtDir">复制目录</button>
+        。未配置密钥时仍可用姓名 / 手机 / 邮箱等规则对照。
       </p>
     </section>
   </div>
@@ -251,14 +234,5 @@ onMounted(() => {
 }
 .ext-facts span {
   font-size: 13px;
-}
-.fallback {
-  margin-top: 8px;
-}
-.copy {
-  height: 28px;
-  padding: 0 8px;
-  margin-left: 6px;
-  vertical-align: middle;
 }
 </style>

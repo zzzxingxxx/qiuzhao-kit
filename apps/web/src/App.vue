@@ -4,7 +4,7 @@ import { useRoute } from "vue-router";
 import { getAiSettings, getHealth, type Health } from "./api";
 import { aiDrawerOpen, aiReady } from "./ai-ui";
 import AiAssistant from "./components/AiAssistant.vue";
-import LaunchExtButton from "./components/LaunchExtButton.vue";
+import LoadExtensionButton from "./components/LoadExtensionButton.vue";
 
 const route = useRoute();
 const health = ref<Health | null>(null);
@@ -53,7 +53,7 @@ onMounted(async () => {
         </router-link>
       </nav>
       <div class="top-right">
-        <LaunchExtButton compact label="预填浏览器" />
+        <LoadExtensionButton compact />
         <button type="button" class="btn ai" @click="aiDrawerOpen = true">AI 助手</button>
         <div class="pulse" :class="{ ok: health?.ok }" :title="health?.ok ? '本机服务已连接' : '本机服务未连接'" />
       </div>

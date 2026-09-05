@@ -89,23 +89,24 @@ export type ExtensionStatus = {
   browser: { name: string; path: string } | null;
   extensionDir: string;
   built: boolean;
-  profileDir: string;
+  installed: boolean;
 };
 
-export type ExtensionLaunchResult = {
+export type ExtensionLoadResult = {
   ok: boolean;
   browser: string;
-  url: string;
   rebuilt: boolean;
-  extensionDir: string;
+  installed: boolean;
+  already: boolean;
+  restarting: boolean;
 };
 
 export function getExtensionStatus() {
   return request<ExtensionStatus>("/extension/status");
 }
 
-export function launchExtensionBrowser(body?: { url?: string }) {
-  return request<ExtensionLaunchResult>("/extension/launch", {
+export function loadExtension(body?: { browser?: "chrome" | "edge" }) {
+  return request<ExtensionLoadResult>("/extension/load", {
     method: "POST",
     body: JSON.stringify(body ?? {}),
   });
