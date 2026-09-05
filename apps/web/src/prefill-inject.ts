@@ -5,7 +5,7 @@ import {
   highlightFillPlan,
   readFilledValues,
 } from "@qiuzhao/fill/dom";
-import type { FillCaptureChange, FillFieldPlan, FillPlan } from "@qiuzhao/schema";
+import type { Application, FillCaptureChange, FillFieldPlan, FillPlan } from "@qiuzhao/schema";
 
 type Row = FillFieldPlan & { include: boolean; saveToProfile: boolean; wasMissing: boolean };
 
@@ -64,6 +64,7 @@ let plan: FillPlan | null = null;
 let rows: Row[] = [];
 let filledCount = 0;
 let captured: FillCaptureChange[] = [];
+let recorded: Application | null = null;
 let saveToArchive = true;
 let root: ShadowRoot | null = null;
 
@@ -169,14 +170,28 @@ function render() {
 
   if (phase === "done") {
     panel.appendChild(el("p", "okmsg", `已写入本页 ${filledCount} 项。请你本人核对后点页面上的提交。`));
+    if (recorded) {
+      panel.appendChild(
+        el(
+          "p",
+          "okmsg",
+          `已记入看板：${recorded.company || "未填公司"}${recorded.jobTitle ? ` · ${recorded.jobTitle}` : ""}`,
+        ),
+      );
+    }
     if (captured.length) {
       panel.appendChild(el("p", "okmsg", `已记入档案 ${captured.length} 项：${captured.map((item) => item.label).join("、")}`));
     }
     const actions = el("div", "actions");
+    const board = el("button", "ghost", "打开看板");
+    board.type = "button";
+    board.addEventListener("click", () => {
+      window.open("http://127.0.0.1:5173/board", "_blank");
+    });
     const back = el("button", "ghost", "返回");
     back.type = "button";
     back.addEventListener("click", cancel);
-    actions.appendChild(back);
+    actions.append(board, back);
     panel.appendChild(actions);
   }
 
@@ -297,6 +312,7 @@ async function confirmFill() {
   busy = true;
   error = "";
   captured = [];
+  recorded = null;
   render();
   try {
     const result = applyFillMappings(document, selected);
@@ -312,6 +328,21 @@ async function confirmFill() {
         });
         captured = data.applied ?? [];
       }
+    }
+    try {
+      const missingFields = rows
+        .filter((row) => !row.value.trim() && !row.skipReason?.startsWith("不填"))
+        .map((row) => row.label || row.id);
+      recorded = await api<Application>("/applications/from-fill", {
+        method: "POST",
+        body: JSON.stringify({
+          pageUrl: location.href,
+          pageTitle: document.title,
+          missingFields,
+        }),
+      });
+    } catch {
+      error = "已写入本页，但记入看板失败（本页 CSP 可能拦住了请求）。请用扩展或到网页看板手记。";
     }
     phase = "done";
   } catch (err) {

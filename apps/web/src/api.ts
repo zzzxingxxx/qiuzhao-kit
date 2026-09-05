@@ -61,6 +61,39 @@ export function listApplications() {
   return request<{ items: Application[] }>("/applications");
 }
 
+export function createApplication(body: Partial<Application>) {
+  return request<Application>("/applications", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function updateApplication(id: string, body: Partial<Application>) {
+  return request<Application>(`/applications/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteApplication(id: string) {
+  return request<{ ok: boolean }>(`/applications/${id}`, { method: "DELETE" });
+}
+
+export function recordFillApplication(body: {
+  pageUrl: string;
+  pageTitle?: string;
+  company?: string;
+  jobTitle?: string;
+  missingFields?: string[];
+  resumeVersion?: number | null;
+  notes?: string;
+}) {
+  return request<Application>("/applications/from-fill", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
 export function getAiSettings() {
   return request<AiSettingsPublic>("/ai/settings");
 }

@@ -77,6 +77,7 @@ packages/schema   Profile / Resume / Application / AI / 填表对照
 packages/fill     抽表单骨架、标签规则对照、写回输入框
 packages/pdf      一页纸 A4 尺寸与导出文件名
 docs/M2.md        M2 任意网申页 AI 预填
+docs/M3.md        M3 投递看板闭环
 ```
 
 ## 阶段
@@ -88,7 +89,7 @@ docs/M2.md        M2 任意网申页 AI 预填
 | M1b W3 一页 PDF | 已完成（8 套完整模板 + 主题/模块/证件照） |
 | AI 助手（自定义 URL / Key / 拉模型 / 按模块改写） | 已完成 |
 | M2 任意网申页 AI 预填 | 已完成，见 [docs/M2.md](docs/M2.md)；演示页 `/apply-demo.html` |
-| M3 投递看板闭环 | 未开始 |
+| M3 投递看板闭环 | 已完成，见 [docs/M3.md](docs/M3.md)；网页 `/board`，扩展「投递」列表 |
 
 ## 明确不做
 

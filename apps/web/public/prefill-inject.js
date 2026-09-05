@@ -339,6 +339,7 @@ button.ghost { background: transparent; }
   var rows = [];
   var filledCount = 0;
   var captured = [];
+  var recorded = null;
   var saveToArchive = true;
   var root = null;
   function el(tag, cls, text) {
@@ -433,14 +434,28 @@ button.ghost { background: transparent; }
     }
     if (phase === "done") {
       panel.appendChild(el("p", "okmsg", `\u5DF2\u5199\u5165\u672C\u9875 ${filledCount} \u9879\u3002\u8BF7\u4F60\u672C\u4EBA\u6838\u5BF9\u540E\u70B9\u9875\u9762\u4E0A\u7684\u63D0\u4EA4\u3002`));
+      if (recorded) {
+        panel.appendChild(
+          el(
+            "p",
+            "okmsg",
+            `\u5DF2\u8BB0\u5165\u770B\u677F\uFF1A${recorded.company || "\u672A\u586B\u516C\u53F8"}${recorded.jobTitle ? ` \xB7 ${recorded.jobTitle}` : ""}`
+          )
+        );
+      }
       if (captured.length) {
         panel.appendChild(el("p", "okmsg", `\u5DF2\u8BB0\u5165\u6863\u6848 ${captured.length} \u9879\uFF1A${captured.map((item) => item.label).join("\u3001")}`));
       }
       const actions = el("div", "actions");
+      const board = el("button", "ghost", "\u6253\u5F00\u770B\u677F");
+      board.type = "button";
+      board.addEventListener("click", () => {
+        window.open("http://127.0.0.1:5173/board", "_blank");
+      });
       const back = el("button", "ghost", "\u8FD4\u56DE");
       back.type = "button";
       back.addEventListener("click", cancel);
-      actions.appendChild(back);
+      actions.append(board, back);
       panel.appendChild(actions);
     }
     shadow.appendChild(panel);
@@ -555,6 +570,7 @@ button.ghost { background: transparent; }
     busy = true;
     error = "";
     captured = [];
+    recorded = null;
     render();
     try {
       const result = applyFillMappings(document, selected);
@@ -568,6 +584,19 @@ button.ghost { background: transparent; }
           });
           captured = data.applied ?? [];
         }
+      }
+      try {
+        const missingFields = rows.filter((row) => !row.value.trim() && !row.skipReason?.startsWith("\u4E0D\u586B")).map((row) => row.label || row.id);
+        recorded = await api("/applications/from-fill", {
+          method: "POST",
+          body: JSON.stringify({
+            pageUrl: location.href,
+            pageTitle: document.title,
+            missingFields
+          })
+        });
+      } catch {
+        error = "\u5DF2\u5199\u5165\u672C\u9875\uFF0C\u4F46\u8BB0\u5165\u770B\u677F\u5931\u8D25\uFF08\u672C\u9875 CSP \u53EF\u80FD\u62E6\u4F4F\u4E86\u8BF7\u6C42\uFF09\u3002\u8BF7\u7528\u6269\u5C55\u6216\u5230\u7F51\u9875\u770B\u677F\u624B\u8BB0\u3002";
       }
       phase = "done";
     } catch (err) {
