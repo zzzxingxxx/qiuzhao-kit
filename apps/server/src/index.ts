@@ -1,10 +1,11 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { serve } from "@hono/node-server";
-import { Hono } from "hono";
-import { cors } from "hono/cors";
+import { Hono, type Context } from "hono";
 import { dbPath } from "./db/index.js";
+import { findRepoRoot } from "./lib/repo.js";
 import { aiRoutes } from "./routes/ai.js";
 import { applicationRoutes } from "./routes/applications.js";
-import { extensionRoutes } from "./routes/extension.js";
 import { profileRoutes } from "./routes/profiles.js";
 import { resumeRoutes } from "./routes/resumes.js";
 
@@ -13,19 +14,23 @@ const HOST = process.env.HOST ?? "127.0.0.1";
 
 const app = new Hono();
 
-app.use(
-  "/*",
-  cors({
-    origin: (origin) => {
-      if (!origin) return "*";
-      if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return origin;
-      if (origin.startsWith("chrome-extension://") || origin.startsWith("moz-extension://")) {
-        return origin;
-      }
-      return "";
-    },
-  }),
-);
+function applyCors(c: Context) {
+  const origin = c.req.header("Origin") || "*";
+  c.header("Access-Control-Allow-Origin", origin);
+  c.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+  c.header("Access-Control-Allow-Headers", "Content-Type");
+  c.header("Access-Control-Allow-Private-Network", "true");
+  c.header("Vary", "Origin");
+}
+
+app.use("/*", async (c, next) => {
+  if (c.req.method === "OPTIONS") {
+    applyCors(c);
+    return c.body(null, 204);
+  }
+  await next();
+  applyCors(c);
+});
 
 app.get("/health", (c) =>
   c.json({
@@ -36,11 +41,25 @@ app.get("/health", (c) =>
   }),
 );
 
+app.get("/prefill-inject.js", (c) => {
+  try {
+    const file = join(findRepoRoot(), "apps", "web", "public", "prefill-inject.js");
+    if (!existsSync(file)) {
+      return c.json({ error: "missing_inject", message: "预填脚本尚未生成，请先启动网页 http://127.0.0.1:5173" }, 503);
+    }
+    c.header("Content-Type", "text/javascript; charset=utf-8");
+    c.header("Cache-Control", "no-cache");
+    return c.body(readFileSync(file, "utf8"));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "读取预填脚本失败";
+    return c.json({ error: "inject_failed", message }, 500);
+  }
+});
+
 app.route("/profiles", profileRoutes);
 app.route("/resumes", resumeRoutes);
 app.route("/applications", applicationRoutes);
 app.route("/ai", aiRoutes);
-app.route("/extension", extensionRoutes);
 
 app.onError((err, c) => {
   if (err.name === "ZodError") {

@@ -7,7 +7,7 @@
 
 - Node.js 22+
 - pnpm 10+
-- Chrome / Edge（扩展从 M2 开始对任意网申页预填，提交仍手点）
+- Chrome / Edge（任意网申页用书签或演示页预填，提交仍手点）
 
 ## 启动
 
@@ -22,7 +22,7 @@ pnpm dev
 | --- | --- |
 | 本机 API | http://127.0.0.1:8787/health |
 | 网页 | http://127.0.0.1:5173 |
-| 扩展 | 网页顶栏 / 工作台 / 设置里点「加载扩展」，再点确定，装进当前 Chrome |
+| 预填 | 网页点「启用预填」后打开演示页即可用；任意网申页把「秋招预填」拖到书签栏再点一下 |
 
 ## 简历模板
 
@@ -71,7 +71,7 @@ SQLite 文件：`apps/server/data/app.db`（不入库）。使用 Node 22 内置
 
 ```
 apps/web          工作台 / 档案 / 简历 / 看板 / 设置
-apps/extension    预填扩展（网页点「加载扩展」装进当前 Chrome；扫描当前页 → 本机对照 → 人确认后写入；缺项可记入档案）
+apps/extension    预填扩展（可选）。主路径是页面内预填浮层 / 书签，不安装、不重启 Chrome
 apps/server       本机 API，只听 127.0.0.1
 packages/schema   Profile / Resume / Application / AI / 填表对照
 packages/fill     抽表单骨架、标签规则对照、写回输入框

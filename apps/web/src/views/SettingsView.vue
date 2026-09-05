@@ -8,9 +8,10 @@ import {
   type AiModelItem,
   type AiSettingsPublic,
 } from "@qiuzhao/schema";
-import { fetchAiModels, getAiSettings, getExtensionStatus, saveAiSettings, type ExtensionStatus } from "../api";
+import { fetchAiModels, getAiSettings, saveAiSettings } from "../api";
 import { aiReady } from "../ai-ui";
-import LoadExtensionButton from "../components/LoadExtensionButton.vue";
+import EnablePrefillButton from "../components/EnablePrefillButton.vue";
+import { prefillBookmarklet } from "../prefill";
 
 const loading = ref(false);
 const saving = ref(false);
@@ -21,15 +22,7 @@ const apiKey = ref("");
 const model = ref(DEFAULT_AI_MODEL);
 const models = ref<AiModelItem[]>([]);
 const showKey = ref(false);
-const extStatus = ref<ExtensionStatus | null>(null);
-
-async function loadExt() {
-  try {
-    extStatus.value = await getExtensionStatus();
-  } catch {
-    extStatus.value = null;
-  }
-}
+const bookmarklet = prefillBookmarklet();
 
 async function load() {
   loading.value = true;
@@ -100,9 +93,17 @@ async function clearKey() {
   }
 }
 
+async function copyBookmarklet() {
+  try {
+    await navigator.clipboard.writeText(bookmarklet);
+    ElMessage.success("已复制书签代码，可新建书签后粘贴到网址栏");
+  } catch {
+    ElMessage.info("请把橙色按钮拖到书签栏");
+  }
+}
+
 onMounted(() => {
   void load();
-  void loadExt();
 });
 </script>
 
@@ -159,24 +160,14 @@ onMounted(() => {
     <section class="surface sheet ext">
       <h2>网申预填</h2>
       <p class="hint">
-        点「加载扩展」，再点确定，扩展会装进你正在用的 Chrome。然后打开任意网申页，点工具栏「秋招网申助手」→「预填此页」。
-        确认后只写入输入框，不点提交、不读密码。
+        Chrome 不允许网页直接安装扩展，所以不再往浏览器里塞插件、也不会重启 Chrome。
+        点确定后，演示页可直接预填；其它网申页把下面这颗「秋招预填」拖到书签栏，打开申请表再点一下即可。不会自动提交。
       </p>
       <div class="ext-actions">
-        <LoadExtensionButton />
+        <EnablePrefillButton />
+        <a class="bookmarklet" :href="bookmarklet" title="拖到书签栏，或点一下复制" @click.prevent="copyBookmarklet">秋招预填</a>
       </div>
-      <ul v-if="extStatus" class="ext-facts">
-        <li>
-          <b>浏览器</b>
-          <span>{{ extStatus.browser ? extStatus.browser.name : "未找到 Chrome" }}</span>
-        </li>
-        <li>
-          <b>扩展</b>
-          <span>{{ extStatus.installed ? "已加载成功" : extStatus.built ? "未加载，点按钮后确定即可" : "首次加载时会自动构建" }}</span>
-        </li>
-      </ul>
-      <p class="hint">
-        档案没有的题可以在扩展里补，或先在网页上填再「从本页同步」。演示页：
+      <p class="hint">把橙色按钮拖到书签栏（只需一次）。演示页：
         <a href="/apply-demo.html" target="_blank" rel="noreferrer">青梧科技校园招聘申请表</a>
         。未配置密钥时仍可用姓名 / 手机 / 邮箱等规则对照。
       </p>
@@ -210,29 +201,20 @@ onMounted(() => {
 .ext-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin: 12px 0;
 }
-.ext-facts {
-  list-style: none;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  padding: 0;
-  margin: 0 0 12px;
-}
-.ext-facts li {
-  background: var(--chip);
-  border-radius: 10px;
-  padding: 10px 12px;
-}
-.ext-facts b {
-  display: block;
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 500;
-}
-.ext-facts span {
+.bookmarklet {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #c2410c;
+  color: #fff !important;
   font-size: 13px;
+  font-weight: 650;
+  cursor: grab;
 }
 </style>

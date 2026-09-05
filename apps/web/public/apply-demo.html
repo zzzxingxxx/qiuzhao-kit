@@ -116,7 +116,7 @@
       <p class="brand">青梧科技 · CAMPUS HIRE</p>
       <h1>2027 校园招聘申请表</h1>
       <p class="sub">
-        这是本机演示用的普通申请表，不是北森。用浏览器扩展点「预填此页」，核对后再写入。提交按钮请你亲手点（本页会拦住真正提交）。
+        这是本机演示用的普通申请表，不是北森。右下角点「秋招预填」，核对后再写入。提交按钮请你亲手点（本页会拦住真正提交）。
       </p>
       <form id="apply">
         <input type="hidden" name="trace" value="demo-not-beisen" />
@@ -241,11 +241,12 @@
       form.addEventListener("submit", (event) => {
         event.preventDefault();
         window.__qzSubmitClicked = true;
-        log.textContent = "提交按钮被点了（演示页已拦截，不会真正提交）。扩展不应自动点它。";
+        log.textContent = "提交按钮被点了（演示页已拦截，不会真正提交）。预填不会自动点它。";
       });
       document.getElementById("draft").addEventListener("click", () => {
         log.textContent = "草稿未接入服务，这只是演示按钮。";
       });
     </script>
+    <script src="/prefill-inject.js"></script>
   </body>
 </html>

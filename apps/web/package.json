@@ -8,6 +8,7 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@qiuzhao/fill": "workspace:*",
     "@qiuzhao/pdf": "workspace:*",
     "@qiuzhao/schema": "workspace:*",
     "element-plus": "^2.9.8",
@@ -17,6 +18,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.3",
+    "esbuild": "^0.25.0",
     "typescript": "^5.8.2",
     "vite": "^6.2.5",
     "vue-tsc": "^2.2.8"

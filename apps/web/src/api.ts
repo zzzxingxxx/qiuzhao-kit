@@ -84,34 +84,6 @@ export function fetchAiModels() {
   });
 }
 
-export type ExtensionStatus = {
-  ok: boolean;
-  browser: { name: string; path: string } | null;
-  extensionDir: string;
-  built: boolean;
-  installed: boolean;
-};
-
-export type ExtensionLoadResult = {
-  ok: boolean;
-  browser: string;
-  rebuilt: boolean;
-  installed: boolean;
-  already: boolean;
-  restarting: boolean;
-};
-
-export function getExtensionStatus() {
-  return request<ExtensionStatus>("/extension/status");
-}
-
-export function loadExtension(body?: { browser?: "chrome" | "edge" }) {
-  return request<ExtensionLoadResult>("/extension/load", {
-    method: "POST",
-    body: JSON.stringify(body ?? {}),
-  });
-}
-
 export function chatAi(body: {
   messages?: { role: "user" | "assistant" | "system"; content: string }[];
   prompt?: string;
