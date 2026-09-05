@@ -34,8 +34,8 @@ import { nowIso } from "../lib/time.js";
 export const aiRoutes = new Hono();
 
 const SETTINGS_ID = "default";
-const FETCH_MS = 45_000;
-const MAP_FORM_MS = 90_000;
+const FETCH_MS = 100_000;
+const MAP_FORM_MS = 100_000;
 
 type ResolvedAi = {
   baseUrl: string;
