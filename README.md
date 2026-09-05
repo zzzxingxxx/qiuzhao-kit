@@ -71,7 +71,7 @@ SQLite 文件：`apps/server/data/app.db`（不入库）。使用 Node 22 内置
 
 ```
 apps/web          工作台 / 档案 / 简历 / 看板 / 设置
-apps/extension    预填扩展（扫描当前页 → 本机对照 → 人确认后写入）
+apps/extension    预填扩展（扫描当前页 → 本机对照 → 人确认后写入；缺项可记入档案）
 apps/server       本机 API，只听 127.0.0.1
 packages/schema   Profile / Resume / Application / AI / 填表对照
 packages/fill     抽表单骨架、标签规则对照、写回输入框

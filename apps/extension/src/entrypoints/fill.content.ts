@@ -1,4 +1,10 @@
-import { applyFillMappings, clearFillMarks, extractFormSkeleton, highlightFillPlan } from "@qiuzhao/fill/dom";
+import {
+  applyFillMappings,
+  clearFillMarks,
+  extractFormSkeleton,
+  highlightFillPlan,
+  readFilledValues,
+} from "@qiuzhao/fill/dom";
 import type { FillConfidence, FillFieldPlan, FormField } from "@qiuzhao/schema";
 
 type ExtractOk = { ok: true; fields: FormField[]; title: string; href: string };
@@ -33,6 +39,10 @@ export default defineContentScript({
           const result = applyFillMappings(document, fields);
           const res: ApplyOk = { ok: true, ...result, submitUntouched: true };
           sendResponse(res);
+          return;
+        }
+        if (msg?.type === "QZ_READ") {
+          sendResponse({ ok: true, values: readFilledValues(document) });
           return;
         }
         if (msg?.type === "QZ_CLEAR") {

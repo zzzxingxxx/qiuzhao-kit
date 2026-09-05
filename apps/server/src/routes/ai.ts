@@ -439,6 +439,8 @@ aiRoutes.post("/map-form", async (c) => {
   const heuristic = heuristicMap(body.fields, ctx);
   heuristic.atsNote = ats === "unknown" ? undefined : ats;
   heuristic.profileName = profile.name;
+  heuristic.profileId = profile.id;
+  heuristic.resumeId = resume?.id;
   heuristic.resumeRole = resume?.targetRole;
 
   const resolved = resolveSettings();
@@ -521,6 +523,8 @@ aiRoutes.post("/map-form", async (c) => {
     merged.needsKey = false;
     merged.atsNote = heuristic.atsNote;
     merged.profileName = profile.name;
+    merged.profileId = profile.id;
+    merged.resumeId = resume?.id;
     merged.resumeRole = resume?.targetRole;
     return c.json(merged);
   } catch (error) {

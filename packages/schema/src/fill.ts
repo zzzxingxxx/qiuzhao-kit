@@ -53,6 +53,8 @@ export const fillPlanSchema = z.object({
   warning: z.string().max(400).optional(),
   profileName: z.string().max(80).optional(),
   resumeRole: z.string().max(80).optional(),
+  profileId: z.string().max(80).optional(),
+  resumeId: z.string().max(80).optional(),
 });
 
 export const mapFormRequestSchema = z.object({
@@ -68,3 +70,37 @@ export type FillFieldPlan = z.infer<typeof fillFieldPlanSchema>;
 export type FillMissingField = z.infer<typeof fillMissingSchema>;
 export type FillPlan = z.infer<typeof fillPlanSchema>;
 export type MapFormRequest = z.infer<typeof mapFormRequestSchema>;
+
+export const fillCaptureItemSchema = z.object({
+  id: z.string().max(80).default(""),
+  label: z.string().max(200).default(""),
+  value: z.string().max(4000),
+  source: z.string().max(200).default(""),
+});
+
+export const fillCaptureRequestSchema = z.object({
+  profileId: z.string().max(80).optional(),
+  resumeId: z.string().max(80).optional(),
+  items: z.array(fillCaptureItemSchema).min(1).max(120),
+  overwrite: z.boolean().optional(),
+});
+
+export const fillCaptureChangeSchema = z.object({
+  target: z.enum(["profile", "resume", "qa"]),
+  path: z.string().max(200),
+  label: z.string().max(200),
+  from: z.string().max(4000).default(""),
+  to: z.string().max(4000),
+});
+
+export const fillCaptureResultSchema = z.object({
+  profileId: z.string(),
+  resumeId: z.string().optional(),
+  applied: z.array(fillCaptureChangeSchema).default([]),
+  skipped: z.array(z.object({ label: z.string().max(200), reason: z.string().max(200) })).default([]),
+});
+
+export type FillCaptureItem = z.infer<typeof fillCaptureItemSchema>;
+export type FillCaptureRequest = z.infer<typeof fillCaptureRequestSchema>;
+export type FillCaptureChange = z.infer<typeof fillCaptureChangeSchema>;
+export type FillCaptureResult = z.infer<typeof fillCaptureResultSchema>;

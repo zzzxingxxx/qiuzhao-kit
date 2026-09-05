@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { browser } from "wxt/browser";
-import type { FillFieldPlan, FillPlan, FormField } from "@qiuzhao/schema";
+import type { FillCaptureChange, FillFieldPlan, FillPlan, FormField } from "@qiuzhao/schema";
+
+type Row = FillFieldPlan & { include: boolean; saveToProfile: boolean; wasMissing: boolean };
 
 const SERVER = "http://127.0.0.1:8787";
 const SETTINGS = "http://127.0.0.1:5173/settings";
+const PROFILE = "http://127.0.0.1:5173/profile";
 const DEMO = "http://127.0.0.1:5173/apply-demo.html";
 
 const ok = ref<boolean | null>(null);
@@ -13,14 +16,19 @@ const busy = ref(false);
 const phase = ref<"idle" | "review" | "done">("idle");
 const error = ref("");
 const plan = ref<FillPlan | null>(null);
-const rows = ref<(FillFieldPlan & { include: boolean })[]>([]);
+const rows = ref<Row[]>([]);
 const filledCount = ref(0);
+const captured = ref<FillCaptureChange[]>([]);
 const pageTitle = ref("");
+const saveToArchive = ref(true);
 
-const high = computed(() => rows.value.filter((row) => row.value && row.confidence === "high"));
-const unsure = computed(() => rows.value.filter((row) => row.value && row.confidence !== "high"));
-const missing = computed(() => rows.value.filter((row) => !row.value));
+const high = computed(() => rows.value.filter((row) => !row.wasMissing && row.value && row.confidence === "high"));
+const unsure = computed(() => rows.value.filter((row) => !row.wasMissing && row.value && row.confidence !== "high"));
+const missing = computed(() => rows.value.filter((row) => row.wasMissing));
 const selectedCount = computed(() => rows.value.filter((row) => row.include && row.value.trim()).length);
+const captureCount = computed(
+  () => rows.value.filter((row) => row.saveToProfile && row.value.trim() && !row.skipReason?.startsWith("不填")).length,
+);
 
 onMounted(async () => {
   try {
@@ -96,10 +104,15 @@ async function scan() {
       return;
     }
     plan.value = data;
-    rows.value = (data.fields ?? []).map((row) => ({
-      ...row,
-      include: Boolean(row.value.trim()),
-    }));
+    rows.value = (data.fields ?? []).map((row) => {
+      const empty = !row.value.trim();
+      return {
+        ...row,
+        wasMissing: empty,
+        include: !empty,
+        saveToProfile: empty && !row.skipReason?.startsWith("不填"),
+      };
+    });
     phase.value = "review";
     await send(tab.id, {
       type: "QZ_HIGHLIGHT",
@@ -116,6 +129,77 @@ async function scan() {
   }
 }
 
+function onMissingInput(row: Row) {
+  const has = Boolean(row.value.trim());
+  row.include = has;
+  if (has) row.saveToProfile = true;
+}
+
+async function syncFromPage() {
+  const tab = await activeTab();
+  if (!tab?.id) return;
+  busy.value = true;
+  error.value = "";
+  try {
+    const result = await send<{ ok: boolean; values?: { id: string; value: string }[]; error?: string }>(tab.id, {
+      type: "QZ_READ",
+    });
+    if (!result.ok) {
+      error.value = result.error || "读不到本页已填内容";
+      return;
+    }
+    const byId = new Map((result.values ?? []).map((item) => [item.id, item.value]));
+    let n = 0;
+    for (const row of rows.value) {
+      const value = byId.get(row.id)?.trim();
+      if (!value) continue;
+      if (row.wasMissing && !row.value.trim()) {
+        row.value = value;
+        row.include = true;
+        row.saveToProfile = true;
+        n += 1;
+      } else if (!row.value.trim()) {
+        row.value = value;
+        row.include = true;
+        n += 1;
+      }
+    }
+    if (!n) error.value = "本页缺项还是空的。可以在页面上填完再点同步，或直接在上面补。";
+  } catch {
+    error.value = "请刷新此页后再同步。";
+  } finally {
+    busy.value = false;
+  }
+}
+
+async function saveCapture() {
+  if (!saveToArchive.value) return;
+  const items = rows.value
+    .filter((row) => row.saveToProfile && row.value.trim() && !row.skipReason?.startsWith("不填"))
+    .map((row) => ({
+      id: row.id,
+      label: row.label,
+      value: row.value.trim(),
+      source: row.source,
+    }));
+  if (!items.length) return;
+  const res = await fetch(`${SERVER}/profiles/capture`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      profileId: plan.value?.profileId,
+      resumeId: plan.value?.resumeId,
+      items,
+    }),
+  });
+  const data = (await res.json()) as { applied?: FillCaptureChange[]; message?: string; error?: string };
+  if (!res.ok) {
+    error.value = data.message || data.error || "写回档案失败";
+    return;
+  }
+  captured.value = data.applied ?? [];
+}
+
 async function confirmFill() {
   const tab = await activeTab();
   if (!tab?.id) return;
@@ -123,11 +207,12 @@ async function confirmFill() {
     .filter((row) => row.include && row.value.trim())
     .map((row) => ({ id: row.id, value: row.value.trim() }));
   if (!selected.length) {
-    error.value = "没有勾选要写入的项。";
+    error.value = "没有勾选要写入的项。可先补缺项，或从本页同步。";
     return;
   }
   busy.value = true;
   error.value = "";
+  captured.value = [];
   try {
     const result = await send<{ ok: boolean; filled?: string[]; error?: string }>(tab.id, {
       type: "QZ_APPLY",
@@ -138,6 +223,7 @@ async function confirmFill() {
       return;
     }
     filledCount.value = result.filled?.length ?? selected.length;
+    await saveCapture();
     phase.value = "done";
   } catch {
     error.value = "请刷新此页后再写入。";
@@ -206,24 +292,44 @@ function openUrl(url: string) {
         </label>
       </section>
       <section v-if="missing.length" class="group">
-        <h2>档案里没有</h2>
-        <p v-for="row in missing" :key="row.id" class="miss">
-          {{ row.label || row.id }} · {{ row.skipReason || "空" }}
-        </p>
+        <h2>档案里没有 · 自己补</h2>
+        <p class="hint">不同网站题目不一样。补上后写入本页，并记入档案，下次不用再填。</p>
+        <label v-for="row in missing" :key="row.id" class="row miss-row">
+          <input v-model="row.include" type="checkbox" :disabled="!row.value.trim()" />
+          <span class="lab" :title="row.skipReason">{{ row.label || row.id }}</span>
+          <input
+            v-model="row.value"
+            class="val"
+            type="text"
+            :placeholder="row.skipReason || '在此填写'"
+            @input="onMissingInput(row)"
+          />
+        </label>
       </section>
+
+      <label class="save">
+        <input v-model="saveToArchive" type="checkbox" />
+        把我补的 {{ captureCount }} 项记入档案
+      </label>
 
       <div class="actions">
         <button type="button" class="primary" :disabled="busy || !selectedCount" @click="confirmFill">
           确认写入 {{ selectedCount }} 项
         </button>
+        <button type="button" class="ghost" :disabled="busy" @click="syncFromPage">从本页同步</button>
         <button type="button" class="ghost" :disabled="busy" @click="cancel">取消</button>
       </div>
-      <p class="hint">不会点提交、验证码或登录。核对后请你本人点页面上的提交。</p>
+      <p class="hint">不会点提交、验证码或登录。也可先在网页上填缺项，再点「从本页同步」。</p>
     </template>
 
     <template v-else-if="phase === 'done'">
-      <p class="okmsg">已写入 {{ filledCount }} 项。请你本人核对后点页面上的提交。</p>
-      <button type="button" class="ghost" @click="phase = 'idle'">返回</button>
+      <p class="okmsg">已写入本页 {{ filledCount }} 项。请你本人核对后点页面上的提交。</p>
+      <p v-if="captured.length" class="okmsg">已记入档案 {{ captured.length }} 项：{{ captured.map((item) => item.label).join("、") }}</p>
+      <p v-else-if="saveToArchive" class="hint">没有新内容可记入档案（空项或档案里已有）。</p>
+      <div class="actions">
+        <button type="button" class="ghost" @click="openUrl(PROFILE)">查看档案</button>
+        <button type="button" class="ghost" @click="phase = 'idle'">返回</button>
+      </div>
     </template>
 
     <p v-else class="hint">
@@ -355,5 +461,15 @@ button.link {
 }
 .miss {
   margin: 0 0 4px;
+}
+.miss-row .val {
+  background: #fff8e8;
+}
+.save {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12px;
 }
 </style>

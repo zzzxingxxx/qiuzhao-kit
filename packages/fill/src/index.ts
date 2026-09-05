@@ -7,5 +7,7 @@ export {
   matchSelectOption,
   mergeFillPlans,
   planFromModelJson,
+  similarQuestion,
   type FillContext,
 } from "./heuristic";
+export { applyFillCapture, type FillCaptureOptions } from "./capture";

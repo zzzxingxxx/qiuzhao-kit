@@ -431,12 +431,39 @@ export function assemblePlan(
   };
 }
 
+export function similarQuestion(a: string, b: string): boolean {
+  const x = norm(a);
+  const y = norm(b);
+  if (!x || !y) return false;
+  if (x === y) return true;
+  if (x.length >= 4 && y.length >= 4 && (x.includes(y) || y.includes(x))) return true;
+  return false;
+}
+
+function matchStoredQa(profile: Profile, field: FormField) {
+  const label = field.label || field.name;
+  return profile.qa.find((item) => item.answer.trim() && similarQuestion(item.question, label));
+}
+
 export function heuristicMap(fields: FormField[], ctx: FillContext): FillPlan {
   const mapped: FillFieldPlan[] = [];
   for (const field of fields) {
     const h = haystack(field);
     const rule = RULES.find((item) => item.test(h, field));
-    if (!rule) continue;
+    if (!rule) {
+      const qaHit = matchStoredQa(ctx.profile, field);
+      if (!qaHit) continue;
+      const value = applyOptions(field, qaHit.answer);
+      if (!value) continue;
+      mapped.push({
+        id: field.id,
+        label: field.label,
+        value,
+        source: `qa.${qaHit.key}`,
+        confidence: "high",
+      });
+      continue;
+    }
     if (rule.skip) {
       mapped.push({
         id: field.id,

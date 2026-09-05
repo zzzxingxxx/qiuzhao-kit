@@ -272,6 +272,41 @@ export function highlightFillPlan(
   }
 }
 
+export function readFilledValues(doc: Document): { id: string; value: string }[] {
+  const seen = new Set<string>();
+  const result: { id: string; value: string }[] = [];
+  for (const node of doc.querySelectorAll("[data-qz-id]")) {
+    if (!(node instanceof HTMLElement)) continue;
+    const id = node.getAttribute("data-qz-id") ?? "";
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const nodes = [...doc.querySelectorAll(`[data-qz-id="${cssEscape(id)}"]`)];
+    const el = nodes[0];
+    if (el instanceof HTMLSelectElement) {
+      const opt = el.selectedOptions[0];
+      const text = (opt?.text || el.value || "").trim();
+      if (text && text !== "请选择") result.push({ id, value: text });
+      continue;
+    }
+    if (el instanceof HTMLInputElement && el.type === "radio") {
+      const checked = nodes.find((item) => item instanceof HTMLInputElement && item.checked);
+      if (checked instanceof HTMLInputElement) {
+        result.push({ id, value: optionLabel(checked) || checked.value });
+      }
+      continue;
+    }
+    if (el instanceof HTMLInputElement && el.type === "checkbox") {
+      result.push({ id, value: el.checked ? "是" : "否" });
+      continue;
+    }
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+      const value = el.value.trim();
+      if (value) result.push({ id, value });
+    }
+  }
+  return result;
+}
+
 export function clearFillMarks(doc: Document) {
   doc.querySelectorAll("[data-qz-id]").forEach((node) => {
     node.classList.remove("qz-fill-high", "qz-fill-medium", "qz-fill-missing");

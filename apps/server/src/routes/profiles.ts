@@ -1,11 +1,16 @@
 import { Hono } from "hono";
+import { applyFillCapture } from "@qiuzhao/fill";
 import {
   DEFAULT_QA,
+  fillCaptureRequestSchema,
+  normalizeResume,
   profileSchema,
   profileWriteSchema,
+  resumeSchema,
   type Profile,
+  type Resume,
 } from "@qiuzhao/schema";
-import { sqlite, type ProfileRow } from "../db/index.js";
+import { sqlite, type ProfileRow, type ResumeRow } from "../db/index.js";
 import { newId, nowIso } from "../lib/time.js";
 
 export const profileRoutes = new Hono();
@@ -23,9 +28,68 @@ function emptyProfile(id: string, at: string): Profile {
   });
 }
 
+function pickPrimaryProfile(items: Profile[]): Profile | null {
+  if (!items.length) return null;
+  return (
+    items.find((item) => item.name.trim()) ??
+    items.find((item) => item.phone.trim() || item.email.trim()) ??
+    items[0]
+  );
+}
+
+function persistProfile(profile: Profile) {
+  sqlite
+    .prepare(`UPDATE profiles SET name = ?, phone = ?, email = ?, payload = ?, updated_at = ? WHERE id = ?`)
+    .run(profile.name, profile.phone, profile.email, JSON.stringify(profile), profile.updatedAt, profile.id);
+}
+
+function persistResume(resume: Resume) {
+  sqlite
+    .prepare(`UPDATE resumes SET profile_id = ?, template_id = ?, version = ?, payload = ?, updated_at = ? WHERE id = ?`)
+    .run(resume.profileId, resume.templateId, resume.version, JSON.stringify(resume), resume.updatedAt, resume.id);
+}
+
+function loadResume(id: string | undefined, profileId: string): Resume | null {
+  if (id) {
+    const row = sqlite.prepare("SELECT * FROM resumes WHERE id = ?").get(id) as ResumeRow | undefined;
+    return row ? normalizeResume(resumeSchema.parse(JSON.parse(row.payload))) : null;
+  }
+  const owned = sqlite
+    .prepare("SELECT * FROM resumes WHERE profile_id = ? ORDER BY updated_at DESC")
+    .all(profileId) as ResumeRow[];
+  const row = owned[0];
+  return row ? normalizeResume(resumeSchema.parse(JSON.parse(row.payload))) : null;
+}
+
 profileRoutes.get("/", (c) => {
   const rows = sqlite.prepare("SELECT * FROM profiles ORDER BY updated_at DESC").all() as ProfileRow[];
   return c.json({ items: rows.map(rowToProfile) });
+});
+
+profileRoutes.post("/capture", async (c) => {
+  const body = fillCaptureRequestSchema.parse(await c.req.json());
+  const rows = sqlite.prepare("SELECT * FROM profiles ORDER BY updated_at DESC").all() as ProfileRow[];
+  const picked = body.profileId
+    ? rows.map(rowToProfile).find((item) => item.id === body.profileId)
+    : pickPrimaryProfile(rows.map(rowToProfile));
+  if (!picked) return c.json({ error: "profile_missing", message: "请先在网页填写档案。" }, 400);
+  const resume = loadResume(body.resumeId, picked.id);
+  const result = applyFillCapture(picked, resume, body.items, { overwrite: Boolean(body.overwrite) });
+  const at = nowIso();
+  if (result.applied.length) {
+    result.profile.updatedAt = at;
+    persistProfile(result.profile);
+  }
+  if (result.resume && result.resumeChanged) {
+    result.resume.updatedAt = at;
+    persistResume(result.resume);
+  }
+  return c.json({
+    profileId: result.profile.id,
+    resumeId: result.resume?.id,
+    applied: result.applied,
+    skipped: result.skipped,
+  });
 });
 
 profileRoutes.get("/:id", (c) => {
